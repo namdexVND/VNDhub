@@ -1,0 +1,98 @@
+-- ====================================================================
+-- 🔄 HỆ THỐNG XÁC THỰC KEY VND HUB (CỐ ĐỊNH 8 GIỜ) - PHIÊN BẢN TƯƠNG THÍCH
+-- ====================================================================
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local FILE_NAME = "VND_KEY_CACHE.txt"
+local API_TOKEN = "695f7e6a085a446e0a3e7c89"
+local WEB_URL = "https://vndhubfreekey.blogspot.com/2026/05/he-thong-xac-thuc-key-function.html"
+
+-- 1. Hàm tạo mã Key cố định 8 giờ
+local function getFixedKeyFor8Hours()
+    local totalHours = math.floor(os.time() / 3600)
+    local period = math.floor(totalHours / 8)
+    math.randomseed(period)
+    local randomString = ""
+    for i = 1, 12 do randomString = randomString .. tostring(math.random(0, 9)) end
+    return "VND_" .. randomString
+end
+
+local MyCurrentKey = getFixedKeyFor8Hours()
+local TargetUrl = WEB_URL .. "?ma=" .. MyCurrentKey 
+local ShortenedLink = "Đang lấy link..."
+
+task.spawn(function()
+    local encoded = HttpService:UrlEncode(TargetUrl)
+    local api_endpoint = "https://link4m.co/api-shorten/v2?api=" .. API_TOKEN .. "&url=" .. encoded
+    local success, response = pcall(function() return game:HttpGet(api_endpoint) end)
+    if success then
+        local data = HttpService:JSONDecode(response)
+        ShortenedLink = (data and data.status == "success") and data.shortenedUrl or TargetUrl
+    end
+end)
+
+-- 2. GUI (Dùng PlayerGui thay vì CoreGui để tránh bị chặn)
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local ScreenGui = Instance.new("ScreenGui", PlayerGui)
+ScreenGui.Name = "VND_KeyGui"
+ScreenGui.ResetOnSpawn = false
+
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 400, 0, 220)
+Frame.Position = UDim2.new(0.5, -200, 0.5, -110)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 15)
+local UIStroke = Instance.new("UIStroke", Frame)
+UIStroke.Color = Color3.fromRGB(168, 85, 247)
+UIStroke.Thickness = 3
+
+-- Title
+local Title = Instance.new("TextLabel", Frame)
+Title.Text = "VND HUB | KEY SYSTEM"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 20
+Title.Parent = Frame
+
+-- Input
+local TextBox = Instance.new("TextBox", Frame)
+TextBox.Size = UDim2.new(0.8, 0, 0, 45)
+TextBox.Position = UDim2.new(0.1, 0, 0.3, 0)
+TextBox.PlaceholderText = "Nhập mã Key tại đây..."
+TextBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", TextBox).CornerRadius = UDim.new(0, 10)
+TextBox.Parent = Frame
+
+-- Buttons
+local CheckButton = Instance.new("TextButton", Frame)
+CheckButton.Text = "XÁC THỰC ✅"
+CheckButton.Size = UDim2.new(0.35, 0, 0, 40)
+CheckButton.Position = UDim2.new(0.12, 0, 0.65, 0)
+CheckButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+CheckButton.Parent = Frame
+
+local GetKeyButton = Instance.new("TextButton", Frame)
+GetKeyButton.Text = "LẤY LINK 🌐"
+GetKeyButton.Size = UDim2.new(0.35, 0, 0, 40)
+GetKeyButton.Position = UDim2.new(0.53, 0, 0.65, 0)
+GetKeyButton.BackgroundColor3 = Color3.fromRGB(155, 89, 182)
+GetKeyButton.Parent = Frame
+
+-- Logic
+GetKeyButton.MouseButton1Click:Connect(function()
+    setclipboard(ShortenedLink)
+    print("Link: " .. ShortenedLink)
+end)
+
+CheckButton.MouseButton1Click:Connect(function()
+    if TextBox.Text == MyCurrentKey then
+        if writefile then writefile(FILE_NAME, TextBox.Text) end
+        ScreenGui:Destroy()
+        -- Load script chính ở đây
+        loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+    end
+end)

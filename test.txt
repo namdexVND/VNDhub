@@ -1,0 +1,87 @@
+--// PRIME STAR DASH - CUSTOM SPEED & DISTANCE
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+local settings = {
+    Enabled = false,
+    TargetName = "CityNPC",
+    Distance = 13,
+    DashSpeed = 0.1
+}
+
+-- [ UI - CUSTOM INPUT ]
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 250, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -125, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+
+local function createInput(name, settingKey, default)
+    local label = Instance.new("TextLabel", MainFrame)
+    label.Text = name
+    label.Size = UDim2.new(0.9, 0, 0, 30)
+    label.Position = UDim2.new(0.05, 0, 0, #MainFrame:GetChildren() * 50)
+    label.TextColor3 = Color3.new(1,1,1)
+    label.BackgroundTransparency = 1
+    
+    local box = Instance.new("TextBox", label)
+    box.Size = UDim2.new(0.4, 0, 1, 0)
+    box.Position = UDim2.new(1.1, 0, 0, 0)
+    box.Text = tostring(default)
+    box.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    box.TextColor3 = Color3.new(1,1,1)
+    box.FocusLost:Connect(function()
+        -- Cho phép nhập số từ 0.001 đến 100
+        local val = tonumber(box.Text)
+        if val then settings[settingKey] = math.clamp(val, 0.001, 100) end
+    end)
+end
+
+createInput("Khoảng cách:", "Distance", 13)
+createInput("Tốc độ (0.001-100):", "DashSpeed", 0.1)
+
+local StartBtn = Instance.new("TextButton", MainFrame)
+StartBtn.Size = UDim2.new(0.9, 0, 0, 60)
+StartBtn.Position = UDim2.new(0.05, 0, 0.7, 0)
+StartBtn.Text = "START FARM"
+StartBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+StartBtn.TextColor3 = Color3.new(1,1,1)
+StartBtn.MouseButton1Click:Connect(function()
+    settings.Enabled = not settings.Enabled
+    StartBtn.Text = settings.Enabled and "STOP FARM" or "START FARM"
+    StartBtn.BackgroundColor3 = settings.Enabled and Color3.fromRGB(150, 0, 0) or Color3.fromRGB(0, 150, 100)
+end)
+
+-- [ LOGIC FARM ]
+RunService.Heartbeat:Connect(function()
+    if not settings.Enabled then return end
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+    
+    local target = nil
+    local minDistance = 500
+
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.Name == settings.TargetName then
+            local root = obj:FindFirstChild("HumanoidRootPart")
+            if root and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then
+                local dist = (root.Position - hrp.Position).Magnitude
+                if dist < minDistance then
+                    minDistance = dist
+                    target = root
+                end
+            end
+        end
+    end
+
+    if target then
+        local targetPos = target.Position + (target.CFrame.lookVector * settings.Distance)
+        -- Sử dụng math.clamp để bảo đảm tốc độ nằm trong khoảng an toàn cho script
+        hrp.CFrame = hrp.CFrame:Lerp(CFrame.new(targetPos, target.Position), settings.DashSpeed)
+        VirtualUser:ClickButton1(Vector2.new())
+    end
+end)

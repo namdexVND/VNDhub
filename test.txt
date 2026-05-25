@@ -1,0 +1,97 @@
+--// VND HUB - PRIME STAR FARM (PRO VERSION)
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+local settings = {
+    Enabled = false,
+    TargetName = "CityNPC",
+    Distance = 10,     -- Khoảng cách đứng gần
+    DashSpeed = 0.2,   -- Tốc độ lao (0.1 rất nhanh, 0.5 chậm)
+    Intensity = 8      -- Độ lượn lách (càng cao càng di chuyển nhiều hướng)
+}
+
+-- [ UI - KÉO THẢ & TÙY CHỈNH ]
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 260, 0, 320)
+MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Active = true
+MainFrame.Draggable = true -- Cho phép kéo thả
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+
+local function createSlider(name, varName, min, max)
+    local container = Instance.new("Frame", MainFrame)
+    container.Size = UDim2.new(0.9, 0, 0, 40)
+    container.Position = UDim2.new(0.05, 0, 0.3, #MainFrame:GetChildren() * 45)
+    container.BackgroundTransparency = 1
+    
+    local label = Instance.new("TextLabel", container)
+    label.Text = name .. ": " .. settings[varName]
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.TextColor3 = Color3.new(1,1,1)
+    label.BackgroundTransparency = 1
+    
+    local input = Instance.new("TextBox", container)
+    input.Size = UDim2.new(1, 0, 0, 20)
+    input.Position = UDim2.new(0, 0, 0.5, 0)
+    input.PlaceholderText = "Nhập số..."
+    input.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    input.FocusLost:Connect(function()
+        local val = tonumber(input.Text)
+        if val then settings[varName] = math.clamp(val, min, max); label.Text = name .. ": " .. settings[varName] end
+    end)
+end
+
+createSlider("Khoảng cách", "Distance", 5, 20)
+createSlider("Tốc độ", "DashSpeed", 0.05, 0.8)
+createSlider("Độ lượn lách", "Intensity", 0, 20)
+
+local StartBtn = Instance.new("TextButton", MainFrame)
+StartBtn.Size = UDim2.new(0.9, 0, 0, 50)
+StartBtn.Position = UDim2.new(0.05, 0, 0.8, 0)
+StartBtn.Text = "START FARM"
+StartBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+StartBtn.TextColor3 = Color3.new(1,1,1)
+StartBtn.MouseButton1Click:Connect(function()
+    settings.Enabled = not settings.Enabled
+    StartBtn.Text = settings.Enabled and "STOP FARM" or "START FARM"
+end)
+
+-- [ LOGIC DI CHUYỂN ĐA HƯỚNG ]
+RunService.Heartbeat:Connect(function()
+    if not settings.Enabled then return end
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+
+    local target = nil
+    local minDistance = 500
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.Name == settings.TargetName then
+            local root = obj:FindFirstChild("HumanoidRootPart")
+            if root and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then
+                local dist = (root.Position - hrp.Position).Magnitude
+                if dist < minDistance then minDistance = dist; target = root end
+            end
+        end
+    end
+
+    if target then
+        -- DI CHUYỂN ZIGZAG/ĐA HƯỚNG
+        local time = tick() * 5
+        local offset = Vector3.new(
+            math.sin(time) * settings.Intensity, 
+            0, 
+            math.cos(time) * settings.Intensity
+        )
+        
+        local targetPos = target.Position + (target.CFrame.lookVector * settings.Distance) + offset
+        
+        -- Lao đến vị trí lượn lách (fix lỗi dính hitbox)
+        hrp.CFrame = hrp.CFrame:Lerp(CFrame.new(targetPos, target.Position), settings.DashSpeed)
+        
+        VirtualUser:ClickButton1(Vector2.new())
+    end
+end)

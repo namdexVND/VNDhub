@@ -1,0 +1,96 @@
+--// VND HUB - UI & ORBIT TÙY CHỈNH
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+-- Cấu hình mặc định
+local farmSettings = {
+    Enabled = false,
+    Radius = 7,
+    Speed = 20,
+    Height = 4.5
+}
+
+-- [ UI NÂNG CẤP ]
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 220, 0, 280)
+MainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(150, 80, 250)
+
+-- Tạo nút Tùy chỉnh (Slider nhanh)
+local function createSlider(text, varName, min, max)
+    local frame = Instance.new("Frame", MainFrame)
+    frame.Size = UDim2.new(0.9, 0, 0, 40)
+    frame.Position = UDim2.new(0.05, 0, 0, 0) -- Tự sắp xếp
+    frame.BackgroundTransparency = 1
+    
+    local label = Instance.new("TextLabel", frame)
+    label.Text = text .. ": " .. farmSettings[varName]
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Size = UDim2.new(1, 0, 0, 20)
+    
+    local slider = Instance.new("TextBox", frame)
+    slider.Size = UDim2.new(1, 0, 0, 20)
+    slider.Position = UDim2.new(0, 0, 0.5, 0)
+    slider.PlaceholderText = "Nhập số..."
+    slider.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    slider.FocusLost:Connect(function()
+        local val = tonumber(slider.Text)
+        if val then
+            farmSettings[varName] = math.clamp(val, min, max)
+            label.Text = text .. ": " .. farmSettings[varName]
+        end
+    end)
+end
+
+-- [ GẮN UI ]
+createSlider("Khoảng cách", "Radius", 2, 20)
+createSlider("Tốc độ", "Speed", 5, 50)
+createSlider("Độ cao", "Height", 0, 10)
+
+-- Nút Bật/Tắt chính
+local ToggleBtn = Instance.new("TextButton", MainFrame)
+ToggleBtn.Size = UDim2.new(0.9, 0, 0, 40)
+ToggleBtn.Position = UDim2.new(0.05, 0, 0.8, 0)
+ToggleBtn.Text = "START FARM"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 250)
+ToggleBtn.TextColor3 = Color3.new(1,1,1)
+ToggleBtn.MouseButton1Click:Connect(function()
+    farmSettings.Enabled = not farmSettings.Enabled
+    ToggleBtn.Text = farmSettings.Enabled and "STOP FARM" or "START FARM"
+end)
+
+-- [ LOGIC CHÍNH ]
+RunService.Heartbeat:Connect(function()
+    if not farmSettings.Enabled then return end
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local hrp = char.HumanoidRootPart
+    local nearest = nil
+    local dist = math.huge
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.Name == "CityNPC" and obj:FindFirstChild("HumanoidRootPart") then
+            local d = (obj.HumanoidRootPart.Position - hrp.Position).Magnitude
+            if d < dist then dist = d; nearest = obj end
+        end
+    end
+
+    if nearest then
+        local angle = tick() * farmSettings.Speed
+        local targetPos = nearest.HumanoidRootPart.Position + Vector3.new(
+            math.cos(angle) * farmSettings.Radius,
+            farmSettings.Height,
+            math.sin(angle) * farmSettings.Radius
+        )
+        hrp.CFrame = CFrame.new(targetPos, nearest.HumanoidRootPart.Position)
+        VirtualUser:ClickButton1(Vector2.new())
+    end
+end)

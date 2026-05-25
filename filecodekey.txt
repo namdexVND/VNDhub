@@ -1,0 +1,182 @@
+-- ====================================================================
+-- 🔄 HỆ THỐNG SINH KEY NGẪU NHIÊN ĐỒNG BỘ QUA API LINK4M
+-- ====================================================================
+local HttpService = game:GetService("HttpService")
+
+-- ⚙️ CẤU HÌNH THÔNG TIN CỦA BẠN:
+local API_TOKEN = "695f7e6a085a446e0a3e7c89" -- Dán mã Token API Link4M của bạn
+local WEB_URL = "https://vndhubfreekey.blogspot.com/2026/05/he-thong-xac-thuc-key-function.html?ma=" -- Đường dẫn trang web của bạn
+
+-- Hàm tạo chuỗi SỐ ngẫu nhiên hoàn toàn (Không chữ cái)
+local function generateRandomNumericKey()
+    local randomString = ""
+    math.randomseed(os.time() + math.random(1, 1000)) -- Tăng độ nhiễu seed để không bị trùng trùng lặp
+    
+    -- Vòng lặp chạy 10 lần để lấy ra 10 chữ số ngẫu nhiên từ 0 đến 9
+    for i = 1, 10 do
+        local num = math.random(0, 9)
+        randomString = randomString .. tostring(num)
+    end
+    return "VND_" .. randomString
+end
+
+-- Khởi tạo mã Key ngẫu nhiên cho phiên chạy này
+local MyCurrentKey = generateRandomNumericKey()
+local TargetUrl = WEB_URL .. "?ma=" .. MyCurrentKey
+local ShortenedLink = "Đang kết nối hệ thống lấy link..."
+
+-- Luồng xử lý rút gọn link ngầm bằng API Link4M giống cơ chế requests bên Python
+task.spawn(function()
+    -- Thực hiện Encode URL để tránh lỗi ký tự đặc biệt khi gửi API
+    local encodedUrl = HttpService:UrlEncode(TargetUrl)
+    local api_endpoint = "https://link4m.co/api-shorten/v2?api=" .. API_TOKEN .. "&url=" .. encodedUrl
+    
+    local success, response = pcall(function()
+        return game:HttpGet(api_endpoint)
+    end)
+    
+    if success then
+        local data = HttpService:JSONDecode(response)
+        -- Phân tích cú pháp JSON trả về từ hệ thống Link4M
+        if data and data.status == "success" and data.shortenedUrl then
+            ShortenedLink = data.shortenedUrl
+        elseif data and data.message then
+            ShortenedLink = "Lỗi hệ thống: " .. tostring(data.message)
+        else
+            ShortenedLink = "Lỗi cấu hình: API Token không hợp lệ!"
+        end
+    else
+        ShortenedLink = "Lỗi kết nối: Không thể gọi dữ liệu từ Link4M!"
+    end
+end)
+
+-- ====================================================================
+-- 🎨 GIAO DIỆN HỘP THOẠI XÁC THỰC KEY (CYBERPUNK DARK MODE)
+-- ====================================================================
+local CoreGui = game:GetService("CoreGui")
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local TextBox = Instance.new("TextBox")
+local CheckButton = Instance.new("TextButton")
+local GetKeyButton = Instance.new("TextButton")
+
+ScreenGui.Name = "VND_Random_Link4M_System"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(20, 16, 36)
+Frame.Size = UDim2.new(0, 320, 0, 170)
+Frame.Position = UDim2.new(0.5, -160, 0.5, -85)
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
+
+local UIStroke = Instance.new("UIStroke", Frame)
+UIStroke.Color = Color3.fromRGB(168, 85, 247)
+UIStroke.Thickness = 2
+
+-- Hiệu ứng chạy LED đổi màu viền ngoài 
+task.spawn(function()
+    while task.wait(0.05) do
+        for i = 0, 1, 0.02 do
+            if not Frame or not UIStroke then break end
+            UIStroke.Color = Color3.fromHSV(i, 0.7, 0.9)
+            task.wait(0.05)
+        end
+    end
+end)
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Parent = Frame
+CloseButton.Text = "X"
+CloseButton.Size = UDim2.new(0, 26, 0, 26)
+CloseButton.Position = UDim2.new(1, -33, 0, 7)
+CloseButton.BackgroundColor3 = Color3.fromRGB(239, 68, 68)
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 14
+Instance.new("UICorner", CloseButton).CornerRadius = UDim.new(0, 6)
+CloseButton.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+TextBox.Parent = Frame
+TextBox.PlaceholderText = "Dán mã Key số từ trang Web vào đây... 🔑"
+TextBox.Text = ""
+TextBox.Size = UDim2.new(0.9, 0, 0, 38)
+TextBox.Position = UDim2.new(0.05, 0, 0.28, 0)
+TextBox.BackgroundColor3 = Color3.fromRGB(11, 9, 20)
+TextBox.TextColor3 = Color3.fromRGB(16, 185, 129)
+TextBox.Font = Enum.Font.GothamBold
+TextBox.TextSize = 13
+Instance.new("UICorner", TextBox).CornerRadius = UDim.new(0, 8)
+
+local TextStroke = Instance.new("UIStroke", TextBox)
+TextStroke.Color = Color3.fromRGB(168, 85, 247)
+TextStroke.Thickness = 1
+
+CheckButton.Parent = Frame
+CheckButton.Text = "Kiểm Tra Key ✅"
+CheckButton.Size = UDim2.new(0.42, 0, 0, 36)
+CheckButton.Position = UDim2.new(0.05, 0, 0.62, 0)
+CheckButton.BackgroundColor3 = Color3.fromRGB(16, 185, 129)
+CheckButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CheckButton.Font = Enum.Font.GothamBold
+CheckButton.TextSize = 12
+Instance.new("UICorner", CheckButton).CornerRadius = UDim.new(0, 8)
+
+GetKeyButton.Parent = Frame
+GetKeyButton.Text = "Lấy Link Key 🌐"
+GetKeyButton.Size = UDim2.new(0.42, 0, 0, 36)
+GetKeyButton.Position = UDim2.new(0.53, 0, 0.62, 0)
+GetKeyButton.BackgroundColor3 = Color3.fromRGB(168, 85, 247)
+GetKeyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+GetKeyButton.Font = Enum.Font.GothamBold
+GetKeyButton.TextSize = 12
+Instance.new("UICorner", GetKeyButton).CornerRadius = UDim.new(0, 8)
+
+GetKeyButton.MouseButton1Click:Connect(function()
+    if string.find(ShortenedLink, "http") then
+        setclipboard(ShortenedLink) -- Copy link rút gọn từ API Link4M vào bộ nhớ đệm
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "VND💵 KEY SYSTEM",
+            Text = "Đã copy link Link4M! Hãy dán ra trình duyệt web để lấy mã số nhé.",
+            Duration = 5,
+        })
+    else
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "HỆ THỐNG ĐANG XỬ LÝ",
+            Text = ShortenedLink,
+            Duration = 3,
+        })
+    end
+end)
+
+local keyVerified = false
+CheckButton.MouseButton1Click:Connect(function()
+    if TextBox.Text == MyCurrentKey then
+        keyVerified = true
+        ScreenGui:Destroy()
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Thành Công 🎉",
+            Text = "Mã số chính xác! Chúc bạn chơi game vui vẻ.",
+            Duration = 3,
+        })
+    else
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Sai Mã Key ❌",
+            Text = "Mã số nhập vào không đúng, vui lòng vượt link lại để lấy mã mới!",
+            Duration = 4,
+        })
+    end
+end)
+
+-- Chặn đứng luồng code chính cho đến khi nhập đúng mã ngẫu nhiên vừa tạo
+repeat task.wait() until keyVerified == true
+
+-- ====================================================================
+-- 🚀 CODE MENU HACK CHÍNH (FLUENT UI) CỦA BẠN DÁN TIẾP VÀO ĐÂY
+-- ====================================================================
+repeat task.wait() until game:IsLoaded()
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local Window = Fluent:CreateWindow({
+	Title = "VND💵", SubTitle = "Version 1.4", TabWidth = 157, Size = UDim2.fromOffset(450, 340), Acrylic = true, Theme = "Dark", MinimizeKey = Enum.KeyCode.End
+})
+local Tabs = { Main1 = Window:AddTab({ Title = "Main 🏠" }) }

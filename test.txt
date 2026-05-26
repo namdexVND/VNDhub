@@ -1,0 +1,48 @@
+-- [ LOGIC SNAP-DASH [FASTEST] - TÍCH HỢP SETTINGS ]
+local settings = {
+    TargetName = "NPC2",
+    DashDist = 16,   -- Khoảng cách phi
+    Speed = 0.06      -- Tốc độ phi
+}
+
+local lastDash = 0
+
+task.spawn(function()
+    while true do
+        task.wait()
+        if _G.AutoFarmLevel then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local target = nil
+                
+                -- Tìm NPC theo tên trong settings
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj.Name == settings.TargetName and obj:FindFirstChild("HumanoidRootPart") and obj:FindFirstChild("Humanoid") then
+                        if obj.Humanoid.Health > 0 then 
+                            target = obj.HumanoidRootPart
+                            break 
+                        end
+                    end
+                end
+
+                if target and hrp and (tick() - lastDash > settings.Speed) then
+                    lastDash = tick()
+                    
+                    -- Tính toán vị trí phi xung quanh quái
+                    local randomAngle = math.random() * math.pi * 2
+                    local offset = Vector3.new(math.cos(randomAngle), 0, math.sin(randomAngle)) * settings.DashDist
+                    
+                    -- Dịch chuyển và hướng mặt vào quái
+                    hrp.CFrame = CFrame.lookAt(target.Position + offset, target.Position)
+                    
+                    -- Auto Click
+                    VirtualUser:CaptureController()
+                    VirtualUser:Button1Down(Vector2.new(0.5, 0.5))
+                    task.delay(0.02, function()
+                        VirtualUser:Button1Up(Vector2.new(0.5, 0.5))
+                    end)
+                end
+            end)
+        end
+    end
+end)

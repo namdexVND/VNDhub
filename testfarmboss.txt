@@ -1,0 +1,64 @@
+-- Tạo giao diện Menu riêng
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 180, 0, 120)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Draggable = true
+MainFrame.Active = true
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Text = "ESP NPC MANAGER"
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundTransparency = 1
+
+local ToggleBtn = Instance.new("TextButton", MainFrame)
+ToggleBtn.Text = "Bật Hiện Tên NPC"
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.4, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+
+-- Biến lưu trạng thái
+local IsESPEnabled = false
+
+-- Hàm Hiện/Ẩn ESP
+ToggleBtn.MouseButton1Click:Connect(function()
+    IsESPEnabled = not IsESPEnabled
+    ToggleBtn.Text = IsESPEnabled and "Tắt Hiện Tên NPC" or "Bật Hiện Tên NPC"
+    ToggleBtn.BackgroundColor3 = IsESPEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+end)
+
+-- Vòng lặp hiển thị tên
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if IsESPEnabled then
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("Head") and not game.Players:GetPlayerFromCharacter(obj) then
+                    if not obj.Head:FindFirstChild("EspTag") then
+                        local gui = Instance.new("BillboardGui", obj.Head)
+                        gui.Name = "EspTag"
+                        gui.Size = UDim2.new(0, 100, 0, 50)
+                        gui.StudsOffset = Vector3.new(0, 2, 0)
+                        gui.AlwaysOnTop = true
+                        
+                        local label = Instance.new("TextLabel", gui)
+                        label.Size = UDim2.new(1, 0, 1, 0)
+                        label.BackgroundTransparency = 1
+                        label.TextColor3 = Color3.new(1, 1, 0)
+                        label.Text = obj.Name
+                    end
+                end
+            end
+        else
+            -- Xóa khi tắt
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj:FindFirstChild("Head") and obj.Head:FindFirstChild("EspTag") then
+                    obj.Head.EspTag:Destroy()
+                end
+            end
+        end
+    end
+end)

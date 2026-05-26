@@ -1,0 +1,133 @@
+-- ====================================================================
+-- 🔄 HỆ THỐNG XÁC THỰC KEY VND HUB - NÂNG CẤP HOÀN CHỈNH
+-- ====================================================================
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local FILE_NAME = "VND_KEY_CACHE.txt"
+local API_TOKEN = "695f7e6a085a446e0a3e7c89"
+local WEB_URL = "https://vndhubfreekey.blogspot.com/2026/05/he-thong-xac-thuc-key-function.html"
+
+-- Hàm xử lý Key 8 tiếng
+local function getFixedKeyFor8Hours()
+    local totalHours = math.floor(os.time() / 3600)
+    local period = math.floor(totalHours / 8)
+    math.randomseed(period)
+    local randomString = ""
+    for i = 1, 12 do randomString = randomString .. tostring(math.random(0, 9)) end
+    return "VND_" .. randomString
+end
+
+local MyCurrentKey = getFixedKeyFor8Hours()
+local TargetUrl = WEB_URL .. "?ma=" .. MyCurrentKey 
+local ShortenedLink = "Đang lấy link..."
+
+task.spawn(function()
+    local api_endpoint = "https://link4m.co/api-shorten/v2?api=" .. API_TOKEN .. "&url=" .. HttpService:UrlEncode(TargetUrl)
+    local success, response = pcall(function() return game:HttpGet(api_endpoint) end)
+    if success then
+        local data = HttpService:JSONDecode(response)
+        ShortenedLink = (data and data.status == "success") and data.shortenedUrl or TargetUrl
+    end
+end)
+
+-- Hàm lưu/load key
+local function SaveKey(key)
+    writefile(FILE_NAME, key)
+end
+
+local function LoadKey()
+    if isfile(FILE_NAME) then
+        return readfile(FILE_NAME)
+    end
+    return ""
+end
+
+-- Giao diện GUI
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "VND_KeyGui"
+
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 400, 0, 250)
+Frame.Position = UDim2.new(0.5, -200, 0.5, -125)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 15)
+Instance.new("UIStroke", Frame).Color = Color3.fromRGB(150, 80, 250)
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Text = "VND HUB | KEY SYSTEM"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 22
+Title.Parent = Frame
+
+local TextBox = Instance.new("TextBox", Frame)
+TextBox.Size = UDim2.new(0.8, 0, 0, 45)
+TextBox.Position = UDim2.new(0.1, 0, 0.25, 0)
+TextBox.PlaceholderText = "Dán Key vào đây..."
+TextBox.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.Text = LoadKey() -- Load key cũ ngay khi mở
+Instance.new("UICorner", TextBox).CornerRadius = UDim.new(0, 8)
+TextBox.Parent = Frame
+
+local StatusLabel = Instance.new("TextLabel", Frame)
+StatusLabel.Size = UDim2.new(1, 0, 0, 30)
+StatusLabel.Position = UDim2.new(0, 0, 0.5, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextSize = 16
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.Visible = false
+StatusLabel.Parent = Frame
+
+local CheckButton = Instance.new("TextButton", Frame)
+CheckButton.Text = "XÁC THỰC"
+CheckButton.Size = UDim2.new(0.35, 0, 0, 40)
+CheckButton.Position = UDim2.new(0.12, 0, 0.7, 0)
+CheckButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+CheckButton.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", CheckButton).CornerRadius = UDim.new(0, 8)
+CheckButton.Parent = Frame
+
+local GetKeyButton = Instance.new("TextButton", Frame)
+GetKeyButton.Text = "LẤY LINK"
+GetKeyButton.Size = UDim2.new(0.35, 0, 0, 40)
+GetKeyButton.Position = UDim2.new(0.53, 0, 0.7, 0)
+GetKeyButton.BackgroundColor3 = Color3.fromRGB(120, 60, 200)
+GetKeyButton.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", GetKeyButton).CornerRadius = UDim.new(0, 8)
+GetKeyButton.Parent = Frame
+
+GetKeyButton.MouseButton1Click:Connect(function()
+    setclipboard(ShortenedLink)
+    StatusLabel.Text = "Đã copy link!"
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    StatusLabel.Visible = true
+end)
+
+CheckButton.MouseButton1Click:Connect(function()
+    SaveKey(TextBox.Text) -- Lưu key mỗi khi ấn xác thực
+    
+    if TextBox.Text == MyCurrentKey then
+        StatusLabel.Text = "✅ Xác thực thành công!"
+        StatusLabel.TextColor3 = Color3.fromRGB(40, 255, 40)
+        StatusLabel.Visible = true
+        
+        -- Đếm ngược
+        for i = 3, 1, -1 do
+            StatusLabel.Text = "Đang tải trong " .. i .. "s..."
+            task.wait(1)
+        end
+        
+        ScreenGui:Destroy()
+        loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+    else
+        StatusLabel.Text = "❌ Sai Key rồi!"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        StatusLabel.Visible = true
+        task.wait(2)
+        StatusLabel.Visible = false
+    end
+end)

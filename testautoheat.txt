@@ -1,0 +1,74 @@
+-- [ MENU AUTO BANDAGE CHUYÊN NGHIỆP ]
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "AutoHealUI"
+
+-- Khung chính
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 240, 0, 130)
+MainFrame.Position = UDim2.new(0.5, -120, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true 
+
+local Corner = Instance.new("UICorner", MainFrame)
+Corner.CornerRadius = UDim.new(0, 12)
+
+local Stroke = Instance.new("UIStroke", MainFrame)
+Stroke.Color = Color3.fromRGB(60, 60, 60)
+Stroke.Thickness = 2
+
+-- Tiêu đề
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "AUTO HEAL SYSTEM"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.BackgroundTransparency = 1
+
+-- Nút Bật/Tắt (Toggle)
+local ToggleBtn = Instance.new("TextButton", MainFrame)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 50)
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+ToggleBtn.Text = "AUTO HEAL: OFF"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ToggleBtn.Font = Enum.Font.GothamSemibold
+ToggleBtn.TextSize = 14
+
+local BtnCorner = Instance.new("UICorner", ToggleBtn)
+BtnCorner.CornerRadius = UDim.new(0, 8)
+
+-- [ LOGIC HOẠT ĐỘNG ]
+_G.AutoBandageEnabled = false
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    _G.AutoBandageEnabled = not _G.AutoBandageEnabled
+    
+    if _G.AutoBandageEnabled then
+        ToggleBtn.Text = "AUTO HEAL: ON"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 60) -- Màu xanh lá khi bật
+    else
+        ToggleBtn.Text = "AUTO HEAL: OFF"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) -- Màu xám khi tắt
+    end
+end)
+
+-- [ LOGIC CHẠY NGẦM HỒI MÁU ]
+task.spawn(function()
+    while true do
+        task.wait(1.5)
+        if _G.AutoBandageEnabled then
+            local plr = game:GetService("Players").LocalPlayer
+            local hum = plr.Character and plr.Character:FindFirstChild("Humanoid")
+            
+            -- Kiểm tra máu < 80%
+            if hum and hum.Health > 0 and hum.Health < (hum.MaxHealth * 0.8) then
+                pcall(function()
+                    game:GetService("ReplicatedStorage").Remotes.Heal:FireServer()
+                end)
+            end
+        end
+    end
+end)

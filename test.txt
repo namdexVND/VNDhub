@@ -1,0 +1,106 @@
+-- ====================================================================
+-- 🔄 VND HUB | PRO FARM - "HIT-LOCK ULTRA STRAFE"
+-- ====================================================================
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+local settings = {
+    Enabled = false,
+    TargetName = "CityNPC", -- Tên NPC đã được cố định
+    DashSpeed = 40          -- Tốc độ cao để bám dính mục tiêu
+}
+
+-- [ GIAO DIỆN MENU ]
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 280, 0, 250)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -125)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(100, 100, 255)
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Text = "VND HUB | FARM CITYNPC"
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 12)
+Title.Parent = MainFrame
+
+local StartBtn = Instance.new("TextButton", MainFrame)
+StartBtn.Size = UDim2.new(0.8, 0, 0, 50)
+StartBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
+StartBtn.Text = "START FARM"
+StartBtn.BackgroundColor3 = Color3.fromRGB(40, 200, 100)
+StartBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", StartBtn).CornerRadius = UDim.new(0, 8)
+StartBtn.Parent = MainFrame
+
+local TeleBtn = Instance.new("TextButton", MainFrame)
+TeleBtn.Size = UDim2.new(0.8, 0, 0, 50)
+TeleBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
+TeleBtn.Text = "TELEPORT TO CITYNPC"
+TeleBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+TeleBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", TeleBtn).CornerRadius = UDim.new(0, 8)
+TeleBtn.Parent = MainFrame
+
+StartBtn.MouseButton1Click:Connect(function()
+    settings.Enabled = not settings.Enabled
+    StartBtn.Text = settings.Enabled and "STOP FARM" or "START FARM"
+    StartBtn.BackgroundColor3 = settings.Enabled and Color3.fromRGB(200, 40, 40) or Color3.fromRGB(40, 200, 100)
+end)
+
+TeleBtn.MouseButton1Click:Connect(function()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name == settings.TargetName and obj:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = obj.HumanoidRootPart.CFrame
+        end
+    end
+end)
+
+-- [ LOGIC PHI SIÊU TỐC - HIT-LOCK ]
+local timeOffset = 0
+RunService.Heartbeat:Connect(function()
+    if not settings.Enabled then return end
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+    local hum = char:FindFirstChild("Humanoid")
+
+    local target = nil
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name == settings.TargetName and obj:FindFirstChild("HumanoidRootPart") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then
+            target = obj.HumanoidRootPart
+            break
+        end
+    end
+
+    if target then
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Physics) end
+        
+        -- Logic phi: Lao xa 9 stud + Sượt ngang sin siêu tốc
+        timeOffset = timeOffset + 0.6
+        local dashOut = target.CFrame.LookVector * 9
+        local strafe = target.CFrame.RightVector * (math.sin(timeOffset) * 7)
+        local targetPos = target.Position + dashOut + strafe
+        
+        local dt = RunService.Heartbeat:Wait()
+        local lerpAlpha = math.clamp(settings.DashSpeed * dt, 0, 1) 
+        
+        -- CFrame khóa hướng mặt về phía NPC để đòn đánh dính tâm
+        hrp.CFrame = hrp.CFrame:Lerp(CFrame.new(targetPos, target.Position), lerpAlpha)
+
+        -- Tấn công dồn dập, không delay
+        VirtualUser:CaptureController()
+        VirtualUser:Button1Down(Vector2.new(0.5, 0.5))
+        VirtualUser:Button1Up(Vector2.new(0.5, 0.5))
+    else
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Running) end
+    end
+end)

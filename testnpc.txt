@@ -1,0 +1,119 @@
+------------------------------------------------
+-- 🧪 MENU THỬ NGHIỆM AUTO FARM CITYNPC
+------------------------------------------------
+
+_G.AutoFarmLevel = false
+_G.TestDistance = 18.2
+_G.TestSpeed = 0.05
+_G.TestAim = true
+_G.TargetNPC = "CityNPC"
+
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "TestFarmMenu"
+
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0,230,0,220)
+Main.Position = UDim2.new(0.5,-115,0.5,-110)
+Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Main.Active = true
+Main.Draggable = true
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0,10)
+
+------------------------------------------------
+-- 📝 TITLE
+------------------------------------------------
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1,0,0,35)
+Title.BackgroundTransparency = 1
+Title.Text = "🧪 TEST CITYNPC FARM"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+
+------------------------------------------------
+-- 📏 DISTANCE
+------------------------------------------------
+local DistBox = Instance.new("TextBox", Main)
+DistBox.Size = UDim2.new(0.8,0,0,30)
+DistBox.Position = UDim2.new(0.1,0,0.25,0)
+DistBox.Text = tostring(_G.TestDistance)
+DistBox.PlaceholderText = "Khoảng cách"
+DistBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+DistBox.TextColor3 = Color3.new(1,1,1)
+DistBox.Font = Enum.Font.Gotham
+DistBox.TextSize = 14
+Instance.new("UICorner", DistBox).CornerRadius = UDim.new(0,8)
+
+------------------------------------------------
+-- ⚡ SPEED
+------------------------------------------------
+local SpeedBox = Instance.new("TextBox", Main)
+SpeedBox.Size = UDim2.new(0.8,0,0,30)
+SpeedBox.Position = UDim2.new(0.1,0,0.45,0)
+SpeedBox.Text = tostring(_G.TestSpeed)
+SpeedBox.PlaceholderText = "Tốc độ"
+SpeedBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+SpeedBox.TextColor3 = Color3.new(1,1,1)
+SpeedBox.Font = Enum.Font.Gotham
+SpeedBox.TextSize = 14
+Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0,8)
+
+------------------------------------------------
+-- 🎯 AIM
+------------------------------------------------
+local AimBtn = Instance.new("TextButton", Main)
+AimBtn.Size = UDim2.new(0.8,0,0,30)
+AimBtn.Position = UDim2.new(0.1,0,0.65,0)
+AimBtn.Text = "AIM LOCK : ON"
+AimBtn.BackgroundColor3 = Color3.fromRGB(0,120,60)
+AimBtn.TextColor3 = Color3.new(1,1,1)
+AimBtn.Font = Enum.Font.GothamBold
+AimBtn.TextSize = 13
+Instance.new("UICorner", AimBtn).CornerRadius = UDim.new(0,8)
+
+AimBtn.MouseButton1Click:Connect(function()
+
+    _G.TestAim = not _G.TestAim
+
+    if _G.TestAim then
+        AimBtn.Text = "AIM LOCK : ON"
+        AimBtn.BackgroundColor3 = Color3.fromRGB(0,120,60)
+    else
+        AimBtn.Text = "AIM LOCK : OFF"
+        AimBtn.BackgroundColor3 = Color3.fromRGB(120,40,40)
+    end
+end)
+
+------------------------------------------------
+-- ▶ START
+------------------------------------------------
+local StartBtn = Instance.new("TextButton", Main)
+StartBtn.Size = UDim2.new(0.8,0,0,38)
+StartBtn.Position = UDim2.new(0.1,0,0.82,0)
+StartBtn.Text = "START FARM"
+StartBtn.BackgroundColor3 = Color3.fromRGB(0,170,80)
+StartBtn.TextColor3 = Color3.new(1,1,1)
+StartBtn.Font = Enum.Font.GothamBold
+StartBtn.TextSize = 15
+Instance.new("UICorner", StartBtn).CornerRadius = UDim.new(0,8)
+
+StartBtn.MouseButton1Click:Connect(function()
+
+    _G.AutoFarmLevel = not _G.AutoFarmLevel
+
+    if tonumber(DistBox.Text) then
+        _G.TestDistance = tonumber(DistBox.Text)
+    end
+
+    if tonumber(SpeedBox.Text) then
+        _G.TestSpeed = tonumber(SpeedBox.Text)
+    end
+
+    if _G.AutoFarmLevel then
+        StartBtn.Text = "STOP FARM"
+        StartBtn.BackgroundColor3 = Color3.fromRGB(170,40,40)
+    else
+        StartBtn.Text = "START FARM"
+        StartBtn.BackgroundColor3 = Color3.fromRGB(0,170,80)
+    end
+end)

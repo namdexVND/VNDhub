@@ -1,0 +1,98 @@
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- [ CẤU HÌNH CÀI ĐẶT ]
+local settings = {
+    Enabled = false,
+    TargetName = "CityNPC",
+    Distance = 5,
+    DodgeSpeed = 10, -- Tốc độ né
+    DodgeRange = 4   -- Độ rộng né
+}
+
+-- [ TẠO GUI ĐẸP ]
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 200, 0, 220)
+MainFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(60, 60, 60)
+
+-- Tạo nút Slider chỉnh tốc độ
+local function CreateSlider(name, min, max, initial, callback)
+    local Container = Instance.new("Frame", MainFrame)
+    Container.Size = UDim2.new(0.9, 0, 0, 40)
+    Container.Position = UDim2.new(0.05, 0, 0, #MainFrame:GetChildren() * 45)
+    Container.BackgroundTransparency = 1
+    
+    local Title = Instance.new("TextLabel", Container)
+    Title.Text = name
+    Title.TextColor3 = Color3.new(1,1,1)
+    Title.Size = UDim2.new(1,0,0,20)
+    Title.BackgroundTransparency = 1
+    
+    local Bar = Instance.new("Frame", Container)
+    Bar.Size = UDim2.new(1,0,0,6)
+    Bar.Position = UDim2.new(0,0,0.6,0)
+    Bar.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    
+    local Slider = Instance.new("Frame", Bar)
+    Slider.Size = UDim2.new((initial-min)/(max-min), 0, 1, 0)
+    Slider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    
+    Bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local mouse = LocalPlayer:GetMouse()
+            local perc = math.clamp((mouse.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
+            Slider.Size = UDim2.new(perc, 0, 1, 0)
+            callback(min + (max-min) * perc)
+        end
+    end)
+end
+
+-- [ NÚT START/STOP ]
+local StartBtn = Instance.new("TextButton", MainFrame)
+StartBtn.Size = UDim2.new(0.9, 0, 0, 40)
+StartBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
+StartBtn.Text = "START FARM"
+StartBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+Instance.new("UICorner", StartBtn).CornerRadius = UDim.new(0, 8)
+
+StartBtn.MouseButton1Click:Connect(function()
+    settings.Enabled = not settings.Enabled
+    StartBtn.Text = settings.Enabled and "STOP FARM" or "START FARM"
+    StartBtn.BackgroundColor3 = settings.Enabled and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(0, 120, 255)
+end)
+
+-- [ THÊM SLIDER ]
+CreateSlider("Tốc độ Né (Dodge)", 1, 20, 10, function(val) settings.DodgeSpeed = val end)
+CreateSlider("Biên độ Né (Range)", 1, 10, 4, function(val) settings.DodgeRange = val end)
+
+-- [ LOGIC CHÍNH: FARM + NÉ ĐÒN ]
+RunService.Heartbeat:Connect(function()
+    if not settings.Enabled then return end
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local npc = workspace:FindFirstChild(settings.TargetName)
+    if npc and npc:FindFirstChild("HumanoidRootPart") then
+        local targetRoot = npc.HumanoidRootPart
+        
+        -- Logic né đòn (Sine wave movement)
+        local offset = Vector3.new(math.sin(tick() * settings.DodgeSpeed) * settings.DodgeRange, 0, settings.Distance)
+        local targetPos = targetRoot.CFrame:PointToWorldSpace(offset)
+        
+        -- Di chuyển
+        char.HumanoidRootPart.CFrame = CFrame.new(char.HumanoidRootPart.Position, targetRoot.Position):Lerp(CFrame.new(targetPos, targetRoot.Position), 0.5)
+        
+        -- Tấn công
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton1(Vector2.new(0,0))
+    end
+end)

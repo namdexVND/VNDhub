@@ -1,0 +1,99 @@
+-- ====================================================================
+-- 🔄 VND HUB | PRO FARM - FULL FIXED VERSION
+-- ====================================================================
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Workspace = game:GetService("Workspace")
+
+local settings = {
+    Enabled = false,
+    TargetName = "CityNPC",
+    DashSpeed = 0.3 -- Độ mượt khi lướt (0.1 - 0.5)
+}
+
+-- [ GIAO DIỆN MENU ]
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 280, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -100)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(100, 100, 255)
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Text = "VND HUB | AUTO FARM"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+local StartBtn = Instance.new("TextButton", MainFrame)
+StartBtn.Size = UDim2.new(0.8, 0, 0, 40)
+StartBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
+StartBtn.Text = "START FARM"
+StartBtn.BackgroundColor3 = Color3.fromRGB(40, 200, 100)
+StartBtn.Parent = MainFrame
+
+local TeleBtn = Instance.new("TextButton", MainFrame)
+TeleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+TeleBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
+TeleBtn.Text = "TELEPORT TO NPC"
+TeleBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+TeleBtn.Parent = MainFrame
+
+StartBtn.MouseButton1Click:Connect(function()
+    settings.Enabled = not settings.Enabled
+    StartBtn.Text = settings.Enabled and "STOP FARM" or "START FARM"
+    StartBtn.BackgroundColor3 = settings.Enabled and Color3.fromRGB(200, 40, 40) or Color3.fromRGB(40, 200, 100)
+end)
+
+-- Hàm tìm NPC an toàn
+local function getTarget()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj.Name == settings.TargetName and obj:FindFirstChild("HumanoidRootPart") then
+            local hum = obj:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 then
+                return obj.HumanoidRootPart
+            end
+        end
+    end
+    return nil
+end
+
+TeleBtn.MouseButton1Click:Connect(function()
+    local target = getTarget()
+    if target then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = target.CFrame
+    end
+end)
+
+-- [ LOGIC PHI SIÊU TỐC ]
+local lastStrafe = 0
+RunService.Heartbeat:Connect(function()
+    if not settings.Enabled then return end
+    
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local target = getTarget()
+    if target then
+        -- Logic phi ngang qua quái
+        lastStrafe = lastStrafe + 0.15
+        local strafeOffset = math.sin(lastStrafe) * 12
+        local targetCFrame = target.CFrame * CFrame.new(strafeOffset, 0, 6)
+        
+        -- Dịch chuyển mượt mà về phía mục tiêu
+        hrp.CFrame = hrp.CFrame:Lerp(CFrame.lookAt(targetCFrame.Position, target.Position), settings.DashSpeed)
+
+        -- Thực hiện hành động tấn công
+        VirtualUser:CaptureController()
+        VirtualUser:Button1Down(Vector2.new(0.5, 0.5))
+        task.wait(0.05) -- Delay nhỏ để game nhận diện click
+        VirtualUser:Button1Up(Vector2.new(0.5, 0.5))
+    end
+end)

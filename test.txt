@@ -1,0 +1,96 @@
+-- ====================================================================
+-- 🔄 VND HUB | PRO FARM - "HIT-LOCK ULTRA STRAFE"
+-- ====================================================================
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+local settings = {
+    Enabled = false,
+    TargetName = "CityNPC",
+    DashSpeed = 0.2 -- Tốc độ mượt mà (càng nhỏ càng mượt)
+}
+
+-- [ GIAO DIỆN MENU ]
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 280, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -100)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(100, 100, 255)
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Text = "VND HUB | AUTO FARM"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+local StartBtn = Instance.new("TextButton", MainFrame)
+StartBtn.Size = UDim2.new(0.8, 0, 0, 40)
+StartBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
+StartBtn.Text = "START FARM"
+StartBtn.BackgroundColor3 = Color3.fromRGB(40, 200, 100)
+StartBtn.Parent = MainFrame
+
+local TeleBtn = Instance.new("TextButton", MainFrame)
+TeleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+TeleBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
+TeleBtn.Text = "TELEPORT TO NPC"
+TeleBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+TeleBtn.Parent = MainFrame
+
+StartBtn.MouseButton1Click:Connect(function()
+    settings.Enabled = not settings.Enabled
+    StartBtn.Text = settings.Enabled and "STOP FARM" or "START FARM"
+    StartBtn.BackgroundColor3 = settings.Enabled and Color3.fromRGB(200, 40, 40) or Color3.fromRGB(40, 200, 100)
+end)
+
+TeleBtn.MouseButton1Click:Connect(function()
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj.Name == settings.TargetName and obj:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = obj.HumanoidRootPart.CFrame
+        end
+    end
+end)
+
+-- [ LOGIC PHI SIÊU TỐC - ĐA HƯỚNG ]
+local lastStrafe = 0
+RunService.Heartbeat:Connect(function()
+    if not settings.Enabled then return end
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+    local hum = char:FindFirstChild("Humanoid")
+
+    local target = nil
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj.Name == settings.TargetName and obj:FindFirstChild("HumanoidRootPart") and obj.Humanoid.Health > 0 then
+            target = obj.HumanoidRootPart
+            break
+        end
+    end
+
+    if target then
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Physics) end
+        
+        -- Tạo đường thẳng phi ngang qua quái
+        lastStrafe = lastStrafe + 0.1
+        local strafeDir = math.sin(lastStrafe) * 15 -- Độ rộng đường phi
+        local targetCFrame = target.CFrame * CFrame.new(strafeDir, 0, 5) -- 5 studs phía trước quái
+        
+        -- Di chuyển mượt tới vị trí mới
+        hrp.CFrame = hrp.CFrame:Lerp(CFrame.lookAt(targetCFrame.Position, target.Position), settings.DashSpeed)
+
+        -- Auto click
+        VirtualUser:CaptureController()
+        VirtualUser:Button1Down(Vector2.new(0.5, 0.5))
+        VirtualUser:Button1Up(Vector2.new(0.5, 0.5))
+    else
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Running) end
+    end
+end)

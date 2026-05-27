@@ -1,0 +1,89 @@
+-- ====================================================================
+-- 🩹 VND SHOP | AUTO BUY BANDAGE
+-- ====================================================================
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- [ TẠO GIAO DIỆN CHUYÊN NGHIỆP ]
+local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+ScreenGui.Name = "BandageShopMenu"
+
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 220, 0, 180)
+Main.Position = UDim2.new(0.5, -110, 0.5, -90)
+Main.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+Main.Active = true
+Main.Draggable = true
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+
+-- Tiêu đề
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "AUTO MUA BĂNG GẠT"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.Bold
+Title.Parent = Main
+
+-- Ô nhập số lượng
+local AmountBox = Instance.new("TextBox", Main)
+AmountBox.Size = UDim2.new(0.8, 0, 0, 35)
+AmountBox.Position = UDim2.new(0.1, 0, 0.3, 0)
+AmountBox.PlaceholderText = "Số lượng (VD: 1)"
+AmountBox.Text = "1"
+AmountBox.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+AmountBox.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", AmountBox).CornerRadius = UDim.new(0, 5)
+
+-- Nút Bật/Tắt
+local ToggleBtn = Instance.new("TextButton", Main)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
+ToggleBtn.Text = "AUTO MUA: TẮT"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleBtn.Font = Enum.Font.Bold
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 5)
+
+-- [ LOGIC ĐIỀU KHIỂN ]
+local AutoBuy = false
+local Amount = 1
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    AutoBuy = not AutoBuy
+    Amount = tonumber(AmountBox.Text) or 1
+    
+    ToggleBtn.Text = AutoBuy and "AUTO MUA: BẬT" or "AUTO MUA: TẮT"
+    ToggleBtn.BackgroundColor3 = AutoBuy and Color3.fromRGB(40, 200, 100) or Color3.fromRGB(200, 40, 40)
+end)
+
+-- [ VÒNG LẶP AUTO MUA ]
+task.spawn(function()
+    while true do
+        task.wait(2)
+        if AutoBuy then
+            pcall(function()
+                local bandageName = "b\196\131ng g\225\186\161c"
+                -- Kiểm tra trong Backpack hoặc Character
+                local hasBandage = player.Backpack:FindFirstChild(bandageName) or player.Character:FindFirstChild(bandageName)
+                
+                if not hasBandage then
+                    local args = {
+                        [1] = bandageName,
+                        [2] = Amount
+                    }
+                    
+                    ReplicatedStorage:WaitForChild("KnitPackages")
+                    :WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0")
+                    :WaitForChild("knit"):WaitForChild("Services")
+                    :WaitForChild("ShopService"):WaitForChild("RE"):WaitForChild("buyItem")
+                    :FireServer(unpack(args))
+                    
+                    print("Đã tự động mua " .. Amount .. " băng gạt!")
+                end
+            end)
+        end
+    end
+end)
+

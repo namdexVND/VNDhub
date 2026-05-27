@@ -1,0 +1,93 @@
+-- ====================================================================
+-- 🔄 VND HUB | AUTO SHOP - MUA BĂNG GẠC (THÔNG MINH)
+-- ====================================================================
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+local settings = {
+    Enabled = false,
+    Amount = 1 -- Số lượng mua mỗi lần
+}
+
+-- [ GIAO DIỆN MENU ]
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 200, 0, 160)
+MainFrame.Position = UDim2.new(0.5, -100, 0.5, -80)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(255, 255, 255)
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Text = "AUTO BANDAGE"
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+-- Ô nhập số lượng
+local AmountInput = Instance.new("TextBox", MainFrame)
+AmountInput.Size = UDim2.new(0.8, 0, 0, 30)
+AmountInput.Position = UDim2.new(0.1, 0, 0.25, 0)
+AmountInput.PlaceholderText = "Số lượng mỗi lần mua"
+AmountInput.Text = "1"
+AmountInput.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+AmountInput.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", AmountInput).CornerRadius = UDim.new(0, 5)
+AmountInput.Parent = MainFrame
+
+local BuyBtn = Instance.new("TextButton", MainFrame)
+BuyBtn.Size = UDim2.new(0.8, 0, 0, 30)
+BuyBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
+BuyBtn.Text = "START AUTO BUY"
+BuyBtn.BackgroundColor3 = Color3.fromRGB(40, 200, 100)
+BuyBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", BuyBtn).CornerRadius = UDim.new(0, 5)
+BuyBtn.Parent = BuyBtn
+
+local StatusLabel = Instance.new("TextLabel", MainFrame)
+StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+StatusLabel.Position = UDim2.new(0, 0, 0.85, 0)
+StatusLabel.Text = "Status: Idle"
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextColor3 = Color3.new(1, 1, 1)
+StatusLabel.Parent = MainFrame
+
+BuyBtn.MouseButton1Click:Connect(function()
+    settings.Enabled = not settings.Enabled
+    settings.Amount = tonumber(AmountInput.Text) or 1
+    BuyBtn.Text = settings.Enabled and "STOP AUTO BUY" or "START AUTO BUY"
+    BuyBtn.BackgroundColor3 = settings.Enabled and Color3.fromRGB(200, 40, 40) or Color3.fromRGB(40, 200, 100)
+end)
+
+-- [ LOGIC TỰ ĐỘNG MUA KHI HẾT ]
+local ShopRemote = ReplicatedStorage:WaitForChild("KnitPackages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services"):WaitForChild("ShopService"):WaitForChild("RE"):WaitForChild("buyItem")
+
+task.spawn(function()
+    while true do
+        if settings.Enabled then
+            -- Kiểm tra trong Backpack (Túi đồ)
+            local item = LocalPlayer.Backpack:FindFirstChild("băng gạc")
+            
+            if not item then
+                StatusLabel.Text = "Status: Đang mua..."
+                local args = {
+                    [1] = "b\196\131ng g\225\186\161c",
+                    [2] = settings.Amount
+                }
+                pcall(function()
+                    ShopRemote:FireServer(unpack(args))
+                end)
+            else
+                StatusLabel.Text = "Status: Đang có băng gạc"
+            end
+        else
+            StatusLabel.Text = "Status: Tắt"
+        end
+        task.wait(1) -- Kiểm tra mỗi 1 giây để tránh lag
+    end
+end)

@@ -1,74 +1,88 @@
--- [ MENU AUTO BANDAGE CHUYÊN NGHIỆP ]
-local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-ScreenGui.Name = "AutoHealUI"
+-- ====================================================================
+-- 🩹 VND HUB | AUTO SHOP BĂNG GẠT
+-- ====================================================================
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Player = Players.LocalPlayer
 
--- Khung chính
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 240, 0, 130)
-MainFrame.Position = UDim2.new(0.5, -120, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true 
+-- [ TẠO GIAO DIỆN GUI ĐỘC LẬP ]
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "AutoBandageMenu"
 
-local Corner = Instance.new("UICorner", MainFrame)
-Corner.CornerRadius = UDim.new(0, 12)
-
-local Stroke = Instance.new("UIStroke", MainFrame)
-Stroke.Color = Color3.fromRGB(60, 60, 60)
-Stroke.Thickness = 2
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 200, 0, 140)
+Frame.Position = UDim2.new(0.8, -100, 0.5, -70)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.Active = true
+Frame.Draggable = true -- Có thể kéo thả menu
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
 
 -- Tiêu đề
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "AUTO HEAL SYSTEM"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "AUTO SHOP BĂNG GẠT"
+Title.TextColor3 = Color3.new(1, 1, 1)
 Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.Bold
 
--- Nút Bật/Tắt (Toggle)
-local ToggleBtn = Instance.new("TextButton", MainFrame)
-ToggleBtn.Size = UDim2.new(0.8, 0, 0, 50)
-ToggleBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
-ToggleBtn.Text = "AUTO HEAL: OFF"
-ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleBtn.Font = Enum.Font.GothamSemibold
-ToggleBtn.TextSize = 14
+-- Nút Bật/Tắt
+local ToggleBtn = Instance.new("TextButton", Frame)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 35)
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
+ToggleBtn.Text = "Auto: OFF"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 4)
 
-local BtnCorner = Instance.new("UICorner", ToggleBtn)
-BtnCorner.CornerRadius = UDim.new(0, 8)
+-- Ô nhập số lượng
+local AmountBox = Instance.new("TextBox", Frame)
+AmountBox.Size = UDim2.new(0.8, 0, 0, 35)
+AmountBox.Position = UDim2.new(0.1, 0, 0.65, 0)
+AmountBox.PlaceholderText = "Số lượng mua"
+AmountBox.Text = "1"
+Instance.new("UICorner", AmountBox).CornerRadius = UDim.new(0, 4)
 
--- [ LOGIC HOẠT ĐỘNG ]
-_G.AutoBandageEnabled = false
+-- [ BIẾN CẤU HÌNH ]
+local AutoEnabled = false
+local BuyAmount = 1
 
 ToggleBtn.MouseButton1Click:Connect(function()
-    _G.AutoBandageEnabled = not _G.AutoBandageEnabled
-    
-    if _G.AutoBandageEnabled then
-        ToggleBtn.Text = "AUTO HEAL: ON"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 60) -- Màu xanh lá khi bật
-    else
-        ToggleBtn.Text = "AUTO HEAL: OFF"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) -- Màu xám khi tắt
-    end
+    AutoEnabled = not AutoEnabled
+    ToggleBtn.Text = AutoEnabled and "Auto: ON" or "Auto: OFF"
+    ToggleBtn.BackgroundColor3 = AutoEnabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
 end)
 
--- [ LOGIC CHẠY NGẦM HỒI MÁU ]
+AmountBox.FocusLost:Connect(function()
+    BuyAmount = tonumber(AmountBox.Text) or 1
+end)
+
+-- [ LOGIC AUTO MUA ]
 task.spawn(function()
     while true do
-        task.wait(1.5)
-        if _G.AutoBandageEnabled then
-            local plr = game:GetService("Players").LocalPlayer
-            local hum = plr.Character and plr.Character:FindFirstChild("Humanoid")
-            
-            -- Kiểm tra máu < 80%
-            if hum and hum.Health > 0 and hum.Health < (hum.MaxHealth * 0.8) then
-                pcall(function()
-                    game:GetService("ReplicatedStorage").Remotes.Heal:FireServer()
-                end)
-            end
+        task.wait(2) -- Kiểm tra mỗi 2 giây
+        if AutoEnabled then
+            pcall(function()
+                -- Xác định băng gạt (Tên theo mã bạn đã cung cấp)
+                local bandageName = "b\196\131ng g\225\186\161c"
+                
+                -- Kiểm tra trong Backpack hoặc Character
+                local hasItem = Player.Backpack:FindFirstChild(bandageName) or Player.Character:FindFirstChild(bandageName)
+                
+                -- Chỉ mua khi không thấy băng gạt
+                if not hasItem then
+                    local args = {
+                        [1] = bandageName,
+                        [2] = BuyAmount
+                    }
+                    
+                    ReplicatedStorage:WaitForChild("KnitPackages")
+                    :WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0")
+                    :WaitForChild("knit"):WaitForChild("Services")
+                    :WaitForChild("ShopService"):WaitForChild("RE")
+                    :WaitForChild("buyItem"):FireServer(unpack(args))
+                    
+                    print("Đã tự động mua " .. BuyAmount .. " băng gạt!")
+                end
+            end)
         end
     end
 end)

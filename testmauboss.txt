@@ -1,0 +1,59 @@
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local guiName = "VND_NPC_Tracker"
+
+local ScreenGui = game.CoreGui:FindFirstChild(guiName) or Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = guiName
+
+local Frame = ScreenGui:FindFirstChild("TrackerFrame") or Instance.new("Frame", ScreenGui)
+Frame.Name = "TrackerFrame"
+Frame.Size = UDim2.new(0, 180, 0, 60)
+Frame.Position = UDim2.new(0.5, -90, 0.1, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+Frame.BorderSizePixel = 0
+Frame.Active = true -- Bắt buộc để nhận diện input
+Frame.Draggable = true -- Tính năng kéo thả mặc định
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
+local Stroke = Frame:FindFirstChild("UIStroke") or Instance.new("UIStroke", Frame)
+Stroke.Color = Color3.fromRGB(150, 80, 250)
+
+-- Tạo Label MÁU BOSS
+local NameLabel = Frame:FindFirstChild("NameLabel") or Instance.new("TextLabel", Frame)
+NameLabel.Name = "NameLabel"
+NameLabel.Size = UDim2.new(1, 0, 0, 25)
+NameLabel.BackgroundTransparency = 1
+NameLabel.Text = "MÁU BOSS" -- Đã đổi tên ở đây
+NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+NameLabel.Font = Enum.Font.GothamBold
+NameLabel.TextSize = 14
+
+local HealthLabel = Frame:FindFirstChild("HealthLabel") or Instance.new("TextLabel", Frame)
+HealthLabel.Name = "HealthLabel"
+HealthLabel.Size = UDim2.new(1, 0, 0, 30)
+HealthLabel.Position = UDim2.new(0, 0, 0.4, 0)
+HealthLabel.BackgroundTransparency = 1
+HealthLabel.Text = "HP: Đang tìm..."
+HealthLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+HealthLabel.Font = Enum.Font.GothamBold
+HealthLabel.TextSize = 18
+
+-- Logic cập nhật máu (Vẫn theo dõi NPC2)
+RunService.RenderStepped:Connect(function()
+    local target = nil
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name == "NPC2" and obj:FindFirstChild("Humanoid") then
+            target = obj.Humanoid
+            break
+        end
+    end
+    
+    if target and target.Health > 0 then
+        local percent = math.floor((target.Health / target.MaxHealth) * 100)
+        HealthLabel.Text = "HP: " .. percent .. "%"
+        HealthLabel.TextColor3 = (percent < 35) and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 255, 127)
+        Frame.Visible = true
+    else
+        HealthLabel.Text = "HP: NPC NOT FOUND"
+        HealthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+end)

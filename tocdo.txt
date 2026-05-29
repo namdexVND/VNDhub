@@ -1,0 +1,93 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- 1. Tạo Giao diện chính (ScreenGui)
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "VND_CustomMenu"
+
+-- 2. Tạo Khung Menu (Main Frame)
+local MenuFrame = Instance.new("Frame", ScreenGui)
+MenuFrame.Size = UDim2.new(0, 200, 0, 200) -- Tăng size khung để chứa thêm nút
+MenuFrame.Position = UDim2.new(0.5, -100, 0.5, -100)
+MenuFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MenuFrame.Active = true
+MenuFrame.Draggable = true
+Instance.new("UICorner", MenuFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", MenuFrame).Color = Color3.fromRGB(150, 80, 250)
+
+local Title = Instance.new("TextLabel", MenuFrame)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "VND MENU"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.BackgroundTransparency = 1
+
+-- 3. Nút Tốc Độ
+local ToggleBtn = Instance.new("TextButton", MenuFrame)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 30)
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.2, 0)
+ToggleBtn.Text = "Tốc độ: ĐANG TẮT"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", ToggleBtn)
+
+-- 4. Nút Noclip (Xuyên tường)
+local NoclipBtn = Instance.new("TextButton", MenuFrame)
+NoclipBtn.Size = UDim2.new(0.8, 0, 0, 30)
+NoclipBtn.Position = UDim2.new(0.1, 0, 0.45, 0)
+NoclipBtn.Text = "Noclip: ĐANG TẮT"
+NoclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Instance.new("UICorner", NoclipBtn)
+
+-- 5. Thanh chỉnh tốc độ
+local SpeedInput = Instance.new("TextBox", MenuFrame)
+SpeedInput.Size = UDim2.new(0.8, 0, 0, 30)
+SpeedInput.Position = UDim2.new(0.1, 0, 0.7, 0)
+SpeedInput.PlaceholderText = "Nhập tốc độ (VD: 50)..."
+SpeedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SpeedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", SpeedInput)
+
+-- LOGIC
+local SpeedEnabled = false
+local NoclipEnabled = false
+local CurrentSpeed = 16
+
+RunService.RenderStepped:Connect(function()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hum = char:FindFirstChild("Humanoid")
+    
+    -- Xử lý tốc độ
+    if SpeedEnabled and hum and hum.WalkSpeed ~= CurrentSpeed then
+        hum.WalkSpeed = CurrentSpeed
+    end
+    
+    -- Xử lý Noclip (Xuyên tường)
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = not NoclipEnabled
+        end
+    end
+end)
+
+-- Sự kiện nhấn nút
+ToggleBtn.MouseButton1Click:Connect(function()
+    SpeedEnabled = not SpeedEnabled
+    ToggleBtn.Text = SpeedEnabled and "Tốc độ: ĐANG BẬT" or "Tốc độ: ĐANG TẮT"
+    ToggleBtn.BackgroundColor3 = SpeedEnabled and Color3.fromRGB(40, 167, 69) or Color3.fromRGB(50, 50, 50)
+    if not SpeedEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+    end
+end)
+
+NoclipBtn.MouseButton1Click:Connect(function()
+    NoclipEnabled = not NoclipEnabled
+    NoclipBtn.Text = NoclipEnabled and "Noclip: ĐANG BẬT" or "Noclip: ĐANG TẮT"
+    NoclipBtn.BackgroundColor3 = NoclipEnabled and Color3.fromRGB(40, 167, 69) or Color3.fromRGB(50, 50, 50)
+end)
+
+SpeedInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then CurrentSpeed = tonumber(SpeedInput.Text) or 16 end
+end)

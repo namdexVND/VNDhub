@@ -1,0 +1,71 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+-- 1. Tạo Giao diện chính (ScreenGui)
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "VND_CustomMenu"
+
+-- 2. Tạo Khung Menu (Main Frame)
+local MenuFrame = Instance.new("Frame", ScreenGui)
+MenuFrame.Size = UDim2.new(0, 200, 0, 150)
+MenuFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
+MenuFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MenuFrame.Active = true
+MenuFrame.Draggable = true -- Cho phép kéo thả
+Instance.new("UICorner", MenuFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", MenuFrame).Color = Color3.fromRGB(150, 80, 250)
+
+local Title = Instance.new("TextLabel", MenuFrame)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "VND SPEED MENU"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.BackgroundTransparency = 1
+
+-- 3. Nút Bật/Tắt (Toggle Button)
+local ToggleBtn = Instance.new("TextButton", MenuFrame)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 30)
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
+ToggleBtn.Text = "Tốc độ: ĐANG TẮT"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", ToggleBtn)
+
+-- 4. Thanh chỉnh tốc độ (Textbox nhập số)
+local SpeedInput = Instance.new("TextBox", MenuFrame)
+SpeedInput.Size = UDim2.new(0.8, 0, 0, 30)
+SpeedInput.Position = UDim2.new(0.1, 0, 0.65, 0)
+SpeedInput.PlaceholderText = "Nhập tốc độ (VD: 50)..."
+SpeedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SpeedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", SpeedInput)
+
+-- 5. Logic xử lý
+local SpeedEnabled = false
+local CurrentSpeed = 16
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    SpeedEnabled = not SpeedEnabled
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hum = char:WaitForChild("Humanoid")
+    
+    if SpeedEnabled then
+        ToggleBtn.Text = "Tốc độ: ĐANG BẬT"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69) -- Xanh
+        hum.WalkSpeed = CurrentSpeed
+    else
+        ToggleBtn.Text = "Tốc độ: ĐANG TẮT"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Xám
+        hum.WalkSpeed = 16
+    end
+end)
+
+SpeedInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        CurrentSpeed = tonumber(SpeedInput.Text) or 16
+        if SpeedEnabled then
+            LocalPlayer.Character.Humanoid.WalkSpeed = CurrentSpeed
+        end
+    end
+end)

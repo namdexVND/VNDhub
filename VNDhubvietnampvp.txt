@@ -1,0 +1,636 @@
+-- ====================================================================
+-- 🔄 HỆ THỐNG XÁC THỰC KEY VND HUB - NÂNG CẤP HOÀN CHỈNH
+-- ====================================================================
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local FILE_NAME = "VND_KEY_CACHE.txt"
+local API_TOKEN = "695f7e6a085a446e0a3e7c89"
+local WEB_URL = "https://vndhubfreekey.blogspot.com/2026/05/he-thong-xac-thuc-key-function.html"
+local VIP_KEY = "VND_KEYVIPVL2026"
+
+-- Biến kiểm soát trạng thái
+local keyOk = false
+
+-- Hàm xử lý Key 8 tiếng
+local function getFixedKeyFor8Hours()
+    local totalHours = math.floor(os.time() / 3600)
+    local period = math.floor(totalHours / 8)
+    math.randomseed(period)
+    local randomString = ""
+    for i = 1, 12 do randomString = randomString .. tostring(math.random(0, 9)) end
+    return "VND_" .. randomString
+end
+
+local MyCurrentKey = getFixedKeyFor8Hours()
+local TargetUrl = WEB_URL .. "?ma=" .. MyCurrentKey 
+local ShortenedLink = "Đang lấy link..."
+
+task.spawn(function()
+    local api_endpoint = "https://link4m.co/api-shorten/v2?api=" .. API_TOKEN .. "&url=" .. HttpService:UrlEncode(TargetUrl)
+    local success, response = pcall(function() return game:HttpGet(api_endpoint) end)
+    if success then
+        local data = HttpService:JSONDecode(response)
+        ShortenedLink = (data and data.status == "success") and data.shortenedUrl or TargetUrl
+    end
+end)
+
+-- Hàm lưu/load key
+local function SaveKey(key)
+    if writefile then writefile(FILE_NAME, key) end
+end
+
+local function LoadKey()
+    if isfile and isfile(FILE_NAME) then
+        return readfile(FILE_NAME)
+    end
+    return ""
+end
+
+-- Giao diện GUI
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "VND_KeyGui"
+
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 400, 0, 250)
+Frame.Position = UDim2.new(0.5, -200, 0.5, -125)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 15)
+Instance.new("UIStroke", Frame).Color = Color3.fromRGB(150, 80, 250)
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Text = "VND HUB | KEY SYSTEM"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 22
+Title.Parent = Frame
+
+local TextBox = Instance.new("TextBox", Frame)
+TextBox.Size = UDim2.new(0.8, 0, 0, 45)
+TextBox.Position = UDim2.new(0.1, 0, 0.25, 0)
+TextBox.PlaceholderText = "Dán Key vào đây..."
+TextBox.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.Text = LoadKey()
+Instance.new("UICorner", TextBox).CornerRadius = UDim.new(0, 8)
+TextBox.Parent = Frame
+
+local StatusLabel = Instance.new("TextLabel", Frame)
+StatusLabel.Size = UDim2.new(1, 0, 0, 30)
+StatusLabel.Position = UDim2.new(0, 0, 0.5, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextSize = 16
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.Visible = false
+StatusLabel.Parent = Frame
+
+local CheckButton = Instance.new("TextButton", Frame)
+CheckButton.Text = "XÁC THỰC"
+CheckButton.Size = UDim2.new(0.35, 0, 0, 40)
+CheckButton.Position = UDim2.new(0.12, 0, 0.7, 0)
+CheckButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+CheckButton.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", CheckButton).CornerRadius = UDim.new(0, 8)
+CheckButton.Parent = Frame
+
+local GetKeyButton = Instance.new("TextButton", Frame)
+GetKeyButton.Text = "LẤY LINK"
+GetKeyButton.Size = UDim2.new(0.35, 0, 0, 40)
+GetKeyButton.Position = UDim2.new(0.53, 0, 0.7, 0)
+GetKeyButton.BackgroundColor3 = Color3.fromRGB(120, 60, 200)
+GetKeyButton.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", GetKeyButton).CornerRadius = UDim.new(0, 8)
+GetKeyButton.Parent = Frame
+
+-- Sự kiện Click
+GetKeyButton.MouseButton1Click:Connect(function()
+    setclipboard(ShortenedLink)
+    StatusLabel.Text = "Đã copy link!"
+    StatusLabel.Visible = true
+end)
+
+CheckButton.MouseButton1Click:Connect(function()
+    local input = TextBox.Text
+    SaveKey(input)
+    
+    if input == MyCurrentKey or input == VIP_KEY then
+        StatusLabel.Text = (input == VIP_KEY) and "👑 Key VIP đã kích hoạt!" or "✅ Xác thực thành công!"
+        StatusLabel.TextColor3 = Color3.fromRGB(40, 255, 40)
+        StatusLabel.Visible = true
+        task.wait(1)
+        ScreenGui:Destroy()
+        keyOk = true
+    else
+        StatusLabel.Text = "❌ Sai Key rồi!"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        StatusLabel.Visible = true
+        task.wait(2)
+        StatusLabel.Visible = false
+    end
+end)
+
+-- CHỜ NHẬP KEY ĐÚNG MỚI CHẠY SCRIPT CHÍNH
+repeat task.wait() until keyOk == true
+
+------------------------------------------------------
+-- 👉 DÁN CODE CHÍNH CỦA BẠN DƯỚI ĐÂY 👇
+------------------------------------------------------
+repeat task.wait() until game:IsLoaded()
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- Variables cho tính năng
+local activeHitboxes = {}
+local activeHealthGuis = {}
+
+local function clearAllHitboxes()
+    for _, box in pairs(activeHitboxes) do if box then box:Destroy() end end
+    activeHitboxes = {}
+end
+
+local function clearAllHealthGuis()
+    for _, gui in pairs(activeHealthGuis) do if gui then gui:Destroy() end end
+    activeHealthGuis = {}
+end
+
+-- 🟢 Nút mở menu chính
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VND_HUB"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
+
+local ImageButton = Instance.new("ImageButton")
+ImageButton.Parent = ScreenGui
+ImageButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ImageButton.BorderSizePixel = 0
+ImageButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+ImageButton.Size = UDim2.new(0, 40, 0, 40)
+ImageButton.Image = "http://www.roblox.com/asset/?id=126677255840605"
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 10)
+UICorner.Parent = ImageButton
+
+-- 🟣 Giao diện Fluent
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+local Window = Fluent:CreateWindow({
+    Title = "VND HUB",
+    SubTitle = "script vietnam pvp",
+    TabWidth = 157,
+    Size = UDim2.fromOffset(450, 400),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.End
+})
+
+local menuVisible = true
+ImageButton.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    Window:Minimize(not menuVisible)
+end)
+
+-- 📑 Tabs
+local Tabs = {
+    Main0 = Window:AddTab({ Title = "Main" }),
+    Main1 = Window:AddTab({ Title = "PVP combat" }),
+    Main2 = Window:AddTab({ Title = "VND FARM" }),
+    Main3 = Window:AddTab({ Title = "Farm boss" }),
+    Main4 = Window:AddTab({ Title = "Fix lag" }),
+    Main5 = Window:AddTab({ Title = "Settings" })
+}
+
+local GaGauGui
+
+Tabs.Main0:AddToggle("GaGauAI", {
+    Title = "Tool Phân Tích Gà Gấu",
+    Default = false,
+    Callback = function(Value)
+
+        if Value then
+
+            if GaGauGui then
+                GaGauGui.Enabled = true
+                return
+            end
+
+            local stats = { gau = 0, ga = 0, total = 0 }
+            local history = {}
+
+            GaGauGui = Instance.new("ScreenGui")
+            GaGauGui.Name = "VND_ELITE_AI"
+            GaGauGui.Parent = player.PlayerGui
+
+            local frame = Instance.new("Frame", GaGauGui)
+            frame.Size = UDim2.new(0,300,0,320)
+            frame.Position = UDim2.new(0.05,0,0.25,0)
+            frame.BackgroundColor3 = Color3.fromRGB(20,20,30)
+            frame.Active = true
+            frame.Draggable = true
+            Instance.new("UICorner", frame)
+
+            local title = Instance.new("TextLabel", frame)
+            title.Size = UDim2.new(1,0,0,40)
+            title.BackgroundColor3 = Color3.fromRGB(140,0,220)
+            title.Text = "VND ELITE AI"
+            title.TextColor3 = Color3.new(1,1,1)
+            title.Font = Enum.Font.SourceSansBold
+            title.TextSize = 22
+            Instance.new("UICorner", title)
+
+            local info = Instance.new("TextLabel", frame)
+            info.Position = UDim2.new(0,10,0,50)
+            info.Size = UDim2.new(1,-20,0,260)
+            info.BackgroundTransparency = 1
+            info.Font = Enum.Font.SourceSansBold
+            info.TextColor3 = Color3.new(1,1,1)
+            info.TextSize = 18
+            info.TextWrapped = true
+            info.TextXAlignment = Enum.TextXAlignment.Left
+            info.TextYAlignment = Enum.TextYAlignment.Top
+
+            local function getHistoryText()
+                local txt = ""
+
+                local startPos = math.max(1, #history - 15)
+
+                for i = startPos, #history do
+                    if history[i] == "GAU" then
+                        txt = txt .. "🐻 "
+                    else
+                        txt = txt .. "🐔 "
+                    end
+                end
+
+                if txt == "" then
+                    txt = "Chưa có dữ liệu"
+                end
+
+                return txt
+            end
+
+            local function getAnalysis()
+                if #history < 4 then
+                    return "Đang học...",0,"CHỜ ĐỢI","---"
+                end
+
+                local s = ""
+
+                for _,v in ipairs(history) do
+                    s = s .. (v == "GAU" and "B" or "A")
+                end
+
+                local last = history[#history]
+                local count = 0
+
+                for i = #history,1,-1 do
+                    if history[i] == last then
+                        count = count + 1
+                    else
+                        break
+                    end
+                end
+
+                local pat, conf, act = "Cầu ngang",50,"NÊN CHỜ"
+
+                if count >= 5 then
+                    pat, conf, act = "🚨 Bệt mạnh",85,"THEO CẦU"
+                elseif s:sub(-4) == "ABAB" then
+                    pat, conf, act = "🔄 Cầu 1-1",75,"BẺ CẦU"
+                elseif #s >= 8 and s:sub(-8) == "AABBAABB" then
+                    pat, conf, act = "🟦 Cầu 2-2",70,"BẺ CẦU"
+                elseif s:sub(-4) == "ABBA" or s:sub(-4) == "BAAB" then
+                    pat, conf, act = "⚓ Cầu 1-2-1",75,"BẺ CẦU"
+                elseif count >= 3 then
+                    pat, conf, act = "⚡ Bệt nhẹ",60,"THEO CẦU"
+                end
+
+                local side = (act == "THEO CẦU")
+                    and last
+                    or (last == "GAU" and "GA" or "GAU")
+
+                return pat, conf, act, side
+            end
+
+            local function updateUI()
+                local pat, conf, act, side = getAnalysis()
+
+                info.Text = string.format(
+                    "Dạng: %s\nTin cậy: %d%%\nLệnh: %s\nChọn: %s\n\nLịch sử:\n%s\n\nTổng: %d (🐻:%d 🐔:%d)",
+                    pat,
+                    conf,
+                    act,
+                    (side=="GAU" and "🐻 GẤU" or "🐔 GÀ"),
+                    getHistoryText(),
+                    stats.total,
+                    stats.gau,
+                    stats.ga
+                )
+            end
+
+            local function createBtn(name,val,pos,col)
+                local b = Instance.new("TextButton", frame)
+                b.Size = UDim2.new(0,120,0,45)
+                b.Position = pos
+                b.Text = name
+                b.Font = Enum.Font.SourceSansBold
+                b.TextSize = 18
+                b.BackgroundColor3 = col
+
+                Instance.new("UICorner", b)
+
+                b.MouseButton1Click:Connect(function()
+                    if val == "GAU" then
+                        stats.gau = stats.gau + 1
+                    else
+                        stats.ga = stats.ga + 1
+                    end
+
+                    stats.total = stats.total + 1
+                    table.insert(history,val)
+
+                    updateUI()
+                end)
+            end
+
+            createBtn("🐔 GÀ","GA",UDim2.new(0,20,1,-60),Color3.fromRGB(255,170,0))
+            createBtn("🐻 GẤU","GAU",UDim2.new(0,160,1,-60),Color3.fromRGB(0,170,255))
+
+            updateUI()
+
+        else
+            if GaGauGui then
+                GaGauGui.Enabled = false
+            end
+        end
+    end
+})
+
+local Lighting = game:GetService("Lighting")
+
+_G.FPSBoostState = false
+_G.Reduce20State = false
+_G.Reduce40State = false
+_G.Reduce60State = false
+_G.Reduce100State = false
+_G.ClearEverythingState = false
+
+local originalMaterials = {}
+
+local function saveOriginalMaterials()
+    if next(originalMaterials) == nil then
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                originalMaterials[v] = {
+                    Material = v.Material,
+                    Reflectance = v.Reflectance,
+                    CastShadow = v.CastShadow
+                }
+            end
+        end
+    end
+end
+
+function toggleGraphicReduction(percent, enable)
+    saveOriginalMaterials()
+
+    local totalParts = 0
+    for _ in pairs(originalMaterials) do
+        totalParts += 1
+    end
+
+    local targetCount = math.floor(totalParts * (percent / 100))
+    local currentCount = 0
+
+    for part, data in pairs(originalMaterials) do
+        if part and part.Parent then
+            currentCount += 1
+
+            if currentCount <= targetCount then
+                if enable then
+                    part.Material = Enum.Material.SmoothPlastic
+                    part.Reflectance = 0
+                    part.CastShadow = false
+                else
+                    part.Material = data.Material
+                    part.Reflectance = data.Reflectance
+                    part.CastShadow = data.CastShadow
+                end
+            end
+        end
+    end
+end
+
+local oldBrightness = Lighting.Brightness
+local oldFogEnd = Lighting.FogEnd
+local oldGlobalShadows = Lighting.GlobalShadows
+
+function activateFPSBoost()
+
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    end)
+
+    Lighting.GlobalShadows = false
+    Lighting.Brightness = 0
+    Lighting.FogEnd = 999999
+
+    for _, v in ipairs(workspace:GetDescendants()) do
+
+        if v:IsA("ParticleEmitter")
+        or v:IsA("Trail")
+        or v:IsA("Beam")
+        or v:IsA("Smoke")
+        or v:IsA("Fire")
+        or v:IsA("Sparkles") then
+
+            v.Enabled = false
+        end
+
+        if v:IsA("BasePart") then
+            v.CastShadow = false
+        end
+    end
+end
+
+function deactivateFPSBoost()
+
+    Lighting.GlobalShadows = oldGlobalShadows
+    Lighting.Brightness = oldBrightness
+    Lighting.FogEnd = oldFogEnd
+
+    for part, data in pairs(originalMaterials) do
+        if part and part.Parent then
+            part.Material = data.Material
+            part.Reflectance = data.Reflectance
+            part.CastShadow = data.CastShadow
+        end
+    end
+end
+
+-- 📋 TÍNH NĂNG HỖ TRỢ
+Tabs.Main0:AddButton({
+    Title = "TikTok Hỗ trợ",
+    Description = "Sao chép link TikTok",
+    Callback = function()
+        setclipboard("https://www.tiktok.com/@biidocdvn")
+        Fluent:Notify({Title = "VND HUB", Content = "Đã sao chép link TikTok!", Duration = 3})
+    end
+})
+
+Tabs.Main0:AddButton({
+    Title = "Zalo Hỗ trợ",
+    Description = "Sao chép số điện thoại Zalo: 0398342212",
+    Callback = function()
+        setclipboard("0398342212")
+        Fluent:Notify({Title = "VND HUB", Content = "Đã sao chép SĐT Zalo vào bộ nhớ tạm!", Duration = 3})
+    end
+})
+
+-- 🥊 PVP VARIABLES
+_G.PvpSpeedActive = false
+_G.PvpJumpActive = false
+_G.PvpAutoAttack = false
+_G.PvpSpinActive = false
+_G.PvpAimNoCamActive = false
+_G.PvpHitboxActive = false
+_G.PvpHealthActive = false
+_G.PvpAutoBandage = false
+
+local customJumpForce = 85
+local attackDelay = 0.08
+
+local function getClosestPlayer()
+    local closest, shortest = nil, math.huge
+    local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = p.Character:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 then
+                local dist = (myRoot.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                if dist < shortest then shortest = dist; closest = p end
+            end
+        end
+    end
+    return closest
+end
+
+-- Tabs buttons
+Tabs.Main1:AddToggle("T1", {Title = "Aim Nhân Vật", Callback = function(v) _G.PvpAimNoCamActive = v end})
+Tabs.Main1:AddToggle("T2", {Title = "Auto Click Tấn Công", Callback = function(v) _G.PvpAutoAttack = v end})
+Tabs.Main1:AddToggle("T8", {Title = "Auto Băng Gạt (<85 HP)", Callback = function(v) _G.PvpAutoBandage = v end})
+Tabs.Main1:AddToggle("T7", {Title = "Hitbox", Callback = function(v) _G.PvpHitboxActive = v end})
+Tabs.Main1:AddToggle("T3", {Title = "Hiện Máu Trên Đầu", Callback = function(v) _G.PvpHealthActive = v end})
+Tabs.Main1:AddToggle("T4", {Title = "Spin", Callback = function(v) _G.PvpSpinActive = v end})
+Tabs.Main1:AddToggle("T5", {Title = "Siêu Tốc Độ", Callback = function(v) _G.PvpSpeedActive = v end})
+Tabs.Main1:AddToggle("T6", {Title = "Siêu Nhảy Cao", Callback = function(v) _G.PvpJumpActive = v end})
+--tabfixlag
+Tabs.Main4:AddToggle("FPSBoostNewToggle", { Title = "🚀 Kích Hoạt FPS Boost", Default = false, Callback = function(Value) _G.FPSBoostState = Value if Value then activateFPSBoost() else deactivateFPSBoost() end end })
+Tabs.Main4:AddToggle("Reduce20Toggle", { Title = "📉 Xóa 20% Đồ Họa Gốc", Default = false, Callback = function(Value) _G.Reduce20State = Value toggleGraphicReduction(20, Value) end })
+Tabs.Main4:AddToggle("Reduce40Toggle", { Title = "📉 Xóa 40% Đồ Họa Gốc", Default = false, Callback = function(Value) _G.Reduce40State = Value toggleGraphicReduction(40, Value) end })
+Tabs.Main4:AddToggle("Reduce60Toggle", { Title = "📉 Xóa 60% Đồ Họa Gốc", Default = false, Callback = function(Value) _G.Reduce60State = Value toggleGraphicReduction(60, Value) end })
+Tabs.Main4:AddToggle("Reduce100Toggle", { Title = "📉 Xóa 100% Đồ Họa Gốc", Default = false, Callback = function(Value) _G.Reduce100State = Value toggleGraphicReduction(100, Value) end })
+Tabs.Main4:AddToggle("ClearEverythingToggle", {
+    Title = "❌ Xóa Sạch Texture & Hiệu Ứng", Default = false, 
+    Callback = function(Value)
+        _G.ClearEverythingState = Value
+        if Value then
+            activateFPSBoost()
+            for _, v in ipairs(workspace:GetDescendants()) do
+                if v:IsA("Decal") or v:IsA("Texture") or v:IsA("Sound") then pcall(function() v:Destroy() end) end
+                if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then v.Enabled = false end
+                if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic v.Reflectance = 0 v.CastShadow = false end
+            end
+        end
+    end
+})
+
+-- CORE LOOP
+RunService.RenderStepped:Connect(function()
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+    -- Movement
+    if _G.PvpSpeedActive and hrp and hum and hum.MoveDirection.Magnitude > 0 then hrp.CFrame += hum.MoveDirection * 0.5 end
+    
+    -- Spin
+    if _G.PvpSpinActive and hrp then
+        if not hrp:FindFirstChild("VND_Spin") then
+            local s = Instance.new("BodyAngularVelocity", hrp); s.Name = "VND_Spin"; s.MaxTorque = Vector3.new(0, math.huge, 0); s.AngularVelocity = Vector3.new(0, 40, 0)
+        end
+    elseif hrp and hrp:FindFirstChild("VND_Spin") then hrp.VND_Spin:Destroy() end
+
+    -- Aim
+    if _G.PvpAimNoCamActive then
+        local target = getClosestPlayer()
+        if target and target.Character and hrp then
+            hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(target.Character.HumanoidRootPart.Position.X, hrp.Position.Y, target.Character.HumanoidRootPart.Position.Z))
+        end
+    end
+
+    -- Hitbox
+    if _G.PvpHitboxActive then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.Humanoid.Health > 0 then
+                local root = p.Character.HumanoidRootPart
+                root.Size = Vector3.new(5, 5, 5); root.CanCollide = false
+                if not activeHitboxes[p.Name] then
+                    local box = Instance.new("BoxHandleAdornment", ScreenGui); box.Size = Vector3.new(5, 6, 5); box.Color3 = Color3.fromRGB(255, 0, 0); box.Transparency = 0.6; box.AlwaysOnTop = true; box.Adornee = root
+                    activeHitboxes[p.Name] = box
+                end
+            end
+        end
+    else clearAllHitboxes() end
+
+    -- Health
+    if _G.PvpHealthActive then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("Head") and p.Character.Humanoid.Health > 0 then
+                if not activeHealthGuis[p.Name] then
+                    local bGui = Instance.new("BillboardGui", ScreenGui); bGui.Size = UDim2.new(0, 200, 0, 50); bGui.StudsOffset = Vector3.new(0, 3.5, 0); bGui.AlwaysOnTop = true; bGui.Adornee = p.Character.Head
+                    local text = Instance.new("TextLabel", bGui); text.Size = UDim2.new(1,0,1,0); text.BackgroundTransparency = 1; text.TextColor3 = Color3.new(0,1,0); text.TextStrokeTransparency = 0
+                    activeHealthGuis[p.Name] = bGui
+                end
+                activeHealthGuis[p.Name].TextLabel.Text = "❤️ "..math.floor(p.Character.Humanoid.Health)
+            end
+        end
+    else clearAllHealthGuis() end
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if _G.PvpJumpActive and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.Velocity = Vector3.new(0, customJumpForce, 0)
+    end
+end)
+
+task.spawn(function()
+    while task.wait(attackDelay) do
+        if _G.PvpAutoAttack then VirtualUser:ClickButton1(Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)) end
+    end
+end)
+
+task.spawn(function()
+    local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("UseBanggac")
+    local lastUsed = 0
+    while task.wait(0.5) do
+        if _G.PvpAutoBandage then
+            local char = player.Character
+            local hum = char and char:FindFirstChild("Humanoid")
+            if hum and hum.Health < 85 and (tick() - lastUsed) > 5 then
+                remote:FireServer()
+                lastUsed = tick()
+            end
+        end
+    end
+end)

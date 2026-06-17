@@ -1,17 +1,25 @@
--- AutoHeal Toggle UI
--- Tự động dùng Băng Gạc khi máu bị mất
+-- AutoHeal Toggle UI (Bản Ép Xung Tốc Độ Tối Đa)
+-- Tự động dùng Băng Gạc khi máu bị mất - Max Speed
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 -- ============================================================
--- CẤU HÌNH
+-- CẤU HÌNH & CACHE (Tối ưu hóa bộ nhớ và tốc độ tìm kiếm)
 -- ============================================================
-local args = {
-    [1] = "B\196\131ng G\225\186\161c"
-}
+-- TỐI ƯU: Truyền trực tiếp chuỗi chữ, bỏ hoàn toàn table mã hóa để chạy nhanh hơn
+local ITEM_NAME = "B\196\131ng G\225\186\161c"
+
+local consumableService = ReplicatedStorage:WaitForChild("Packages")
+    :WaitForChild("Knit")
+    :WaitForChild("Services")
+    :WaitForChild("ConsumableService")
+    :WaitForChild("RF")
+    :WaitForChild("UseConsumable")
 
 -- ============================================================
 -- TẠO GUI
@@ -124,31 +132,15 @@ local function setToggle(state)
     isEnabled = state
 
     if state then
-        -- Trạng thái ON
-        TweenService:Create(toggleButton, tweenInfo, {
-            BackgroundColor3 = Color3.fromRGB(60, 200, 100)
-        }):Play()
-        TweenService:Create(toggleKnob, tweenInfo, {
-            Position = UDim2.new(0, 23, 0.5, -9),
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        }):Play()
-        TweenService:Create(stroke, tweenInfo, {
-            Color = Color3.fromRGB(60, 200, 100)
-        }):Play()
+        TweenService:Create(toggleButton, tweenInfo, {BackgroundColor3 = Color3.fromRGB(60, 200, 100)}):Play()
+        TweenService:Create(toggleKnob, tweenInfo, {Position = UDim2.new(0, 23, 0.5, -9), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TweenService:Create(stroke, tweenInfo, {Color = Color3.fromRGB(60, 200, 100)}):Play()
         statusLabel.Text = "ON"
         statusLabel.TextColor3 = Color3.fromRGB(60, 200, 100)
     else
-        -- Trạng thái OFF
-        TweenService:Create(toggleButton, tweenInfo, {
-            BackgroundColor3 = Color3.fromRGB(50, 50, 65)
-        }):Play()
-        TweenService:Create(toggleKnob, tweenInfo, {
-            Position = UDim2.new(0, 3, 0.5, -9),
-            BackgroundColor3 = Color3.fromRGB(150, 150, 170)
-        }):Play()
-        TweenService:Create(stroke, tweenInfo, {
-            Color = Color3.fromRGB(60, 60, 80)
-        }):Play()
+        TweenService:Create(toggleButton, tweenInfo, {BackgroundColor3 = Color3.fromRGB(50, 50, 65)}):Play()
+        TweenService:Create(toggleKnob, tweenInfo, {Position = UDim2.new(0, 3, 0.5, -9), BackgroundColor3 = Color3.fromRGB(150, 150, 170)}):Play()
+        TweenService:Create(stroke, tweenInfo, {Color = Color3.fromRGB(60, 60, 80)}):Play()
         statusLabel.Text = "OFF"
         statusLabel.TextColor3 = Color3.fromRGB(140, 140, 160)
     end
@@ -161,16 +153,9 @@ local function startHealLoop()
     end
 
     healThread = task.spawn(function()
-        local consumableService = game:GetService("ReplicatedStorage")
-            :WaitForChild("Packages")
-            :WaitForChild("Knit")
-            :WaitForChild("Services")
-            :WaitForChild("ConsumableService")
-            :WaitForChild("RF")
-            :WaitForChild("UseConsumable")
-
         while isEnabled do
-            task.wait(0.5)
+            -- CỰC HẠN: Chạy theo từng khung hình (khoảng 0.016 giây), không còn độ trễ 0.1 giây nữa
+            task.wait()
             if not isEnabled then break end
 
             local char = player.Character
@@ -178,7 +163,10 @@ local function startHealLoop()
 
             if hum and hum.Health > 0 and hum.Health < hum.MaxHealth then
                 if consumableService then
-                    consumableService:InvokeServer(unpack(args))
+                    -- Bắn tín hiệu bất đồng bộ ngay lập tức
+                    task.spawn(function()
+                        consumableService:InvokeServer(ITEM_NAME)
+                    end)
                 end
             end
         end
@@ -192,7 +180,6 @@ local function stopHealLoop()
     end
 end
 
--- Xử lý click toggle
 clickArea.MouseButton1Click:Connect(function()
     local newState = not isEnabled
     setToggle(newState)
@@ -208,4 +195,4 @@ end)
 -- KHỞI ĐỘNG
 -- ============================================================
 setToggle(false)
-print("[AutoHeal UI] Đã tải xong. Nhấn toggle để bật/tắt tự động hồi máu.")
+print("[AutoHeal UI] Đã kích hoạt chế độ Max Speed!")

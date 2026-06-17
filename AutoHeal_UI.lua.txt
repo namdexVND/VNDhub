@@ -1,17 +1,14 @@
--- AutoHeal Toggle UI (Bản Ép Xung Tốc Độ Tối Đa)
--- Tự động dùng Băng Gạc khi máu bị mất - Max Speed
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService") -- Gọi dịch vụ hệ thống khung hình
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 -- ============================================================
--- CẤU HÌNH & CACHE (Tối ưu hóa bộ nhớ và tốc độ tìm kiếm)
+-- CẤU HÌNH
 -- ============================================================
--- TỐI ƯU: Truyền trực tiếp chuỗi chữ, bỏ hoàn toàn table mã hóa để chạy nhanh hơn
 local ITEM_NAME = "B\196\131ng G\225\186\161c"
 
 local consumableService = ReplicatedStorage:WaitForChild("Packages")
@@ -20,6 +17,16 @@ local consumableService = ReplicatedStorage:WaitForChild("Packages")
     :WaitForChild("ConsumableService")
     :WaitForChild("RF")
     :WaitForChild("UseConsumable")
+
+-- Caching nhân vật nâng cao để đạt tốc độ phản xạ 0ms
+local currentHumanoid = nil
+
+local function trackHumanoid(char)
+    currentHumanoid = char:WaitForChild("Humanoid", 5)
+end
+
+player.CharacterAdded:Connect(trackHumanoid)
+if player.Character then trackHumanoid(player.Character) end
 
 -- ============================================================
 -- TẠO GUI
@@ -30,7 +37,6 @@ screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
--- Frame chính
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 200, 0, 60)
@@ -50,7 +56,6 @@ stroke.Color = Color3.fromRGB(60, 60, 80)
 stroke.Thickness = 1
 stroke.Parent = mainFrame
 
--- Icon trái tim
 local iconLabel = Instance.new("TextLabel")
 iconLabel.Name = "Icon"
 iconLabel.Size = UDim2.new(0, 30, 1, 0)
@@ -62,7 +67,6 @@ iconLabel.TextScaled = true
 iconLabel.Font = Enum.Font.GothamBold
 iconLabel.Parent = mainFrame
 
--- Nhãn tên
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Name = "Title"
 titleLabel.Size = UDim2.new(0, 100, 0.5, 0)
@@ -75,7 +79,6 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = mainFrame
 
--- Nhãn trạng thái
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Name = "Status"
 statusLabel.Size = UDim2.new(0, 100, 0.4, 0)
@@ -88,7 +91,6 @@ statusLabel.Font = Enum.Font.Gotham
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Parent = mainFrame
 
--- Nút toggle
 local toggleButton = Instance.new("Frame")
 toggleButton.Name = "Toggle"
 toggleButton.Size = UDim2.new(0, 44, 0, 24)
@@ -113,7 +115,6 @@ local knobCorner = Instance.new("UICorner")
 knobCorner.CornerRadius = UDim.new(1, 0)
 knobCorner.Parent = toggleKnob
 
--- Vùng click trong suốt phủ lên toggle
 local clickArea = Instance.new("TextButton")
 clickArea.Size = UDim2.new(1, 0, 1, 0)
 clickArea.BackgroundTransparency = 1
@@ -121,16 +122,15 @@ clickArea.Text = ""
 clickArea.Parent = toggleButton
 
 -- ============================================================
--- LOGIC TOGGLE
+-- LOGIC KIỂM SOÁT TỐC ĐỘ CAO
 -- ============================================================
 local isEnabled = false
-local healThread = nil
+local healConnection = nil -- Sử dụng Connection thay cho Thread
 
 local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 local function setToggle(state)
     isEnabled = state
-
     if state then
         TweenService:Create(toggleButton, tweenInfo, {BackgroundColor3 = Color3.fromRGB(60, 200, 100)}):Play()
         TweenService:Create(toggleKnob, tweenInfo, {Position = UDim2.new(0, 23, 0.5, -9), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
@@ -147,52 +147,34 @@ local function setToggle(state)
 end
 
 local function startHealLoop()
-    if healThread then
-        task.cancel(healThread)
-        healThread = nil
+    if healConnection then
+        healConnection:Disconnect()
+        healConnection = nil
     end
 
-    healThread = task.spawn(function()
-        while isEnabled do
-            -- CỰC HẠN: Chạy theo từng khung hình (khoảng 0.016 giây), không còn độ trễ 0.1 giây nữa
-            task.wait()
-            if not isEnabled then break end
-
-            local char = player.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-
-            if hum and hum.Health > 0 and hum.Health < hum.MaxHealth then
-                if consumableService then
-                    -- Bắn tín hiệu bất đồng bộ ngay lập tức
-                    task.spawn(function()
-                        consumableService:InvokeServer(ITEM_NAME)
-                    end)
-                end
+    -- CHẠY SIÊU TỐC: Kích hoạt kiểm tra theo thời gian thực của khung hình máy tính (Heartbeat)
+    healConnection = RunService.Heartbeat:Connect(function()
+        if currentHumanoid and currentHumanoid.Health > 0 and currentHumanoid.Health < currentHumanoid.MaxHealth then
+            if consumableService then
+                -- TỐI ƯU TUYỆT ĐỐI: Gửi trực tiếp phương thức hệ thống, KHÔNG tạo closure function mới, KHÔNG sinh rác bộ nhớ
+                task.spawn(consumableService.InvokeServer, consumableService, ITEM_NAME)
             end
         end
     end)
 end
 
 local function stopHealLoop()
-    if healThread then
-        task.cancel(healThread)
-        healThread = nil
+    if healConnection then
+        healConnection:Disconnect()
+        healConnection = nil
     end
 end
 
 clickArea.MouseButton1Click:Connect(function()
     local newState = not isEnabled
     setToggle(newState)
-
-    if newState then
-        startHealLoop()
-    else
-        stopHealLoop()
-    end
+    if newState then startHealLoop() else stopHealLoop() end
 end)
 
--- ============================================================
--- KHỞI ĐỘNG
--- ============================================================
 setToggle(false)
-print("[AutoHeal UI] Đã kích hoạt chế độ Max Speed!")
+print("[AutoHeal UI] Đã kích hoạt cấu trúc Ép Xung Cực Hạn - Tốc độ tối đa lý thuyết!")

@@ -1,1 +1,1 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/namdexVND/Test/refs/heads/main/5816982256599752.lua", true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/namdexVND/Test/refs/heads/main/3841014824026980.lua.txt", true))()

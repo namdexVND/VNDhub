@@ -1,16 +1,104 @@
--- ULTRA BLACK SCREEN & MAX RAM/CPU CLEANER (FULL WIPECOUT)
 local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
-local VirtualUser = game:GetService("VirtualUser")
-local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 
--- 1. TẠO MÀN HÌNH ĐEN TUYỆT ĐỐI (BLACK SCREEN OVERLAY)
+-- ==========================================
+-- CẤU HÌNH PHÍM TẮT (Mặc định: Phím Insert)
+local TOGGLE_KEY = Enum.KeyCode.Insert
+-- ==========================================
+
+local isOptimized = true
+local originalVolume = SoundService.Volume > 0 and SoundService.Volume or 0.5
+
+-- 1. ÉP ĐỒ HỌA SIÊU THẤP (POTATO GRAPHICS CHO PC YẾU)
+local function applyPotatoGraphics()
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        Lighting.Technology = Enum.Technology.Compatibility
+        
+        -- Tắt toàn bộ hiệu ứng ánh sáng nặng
+        for _, v in pairs(Lighting:GetChildren()) do
+            if v:IsA("PostEffect") or v:IsA("Atmosphere") or v:IsA("Sky") then
+                v.Enabled = false
+            end
+        end
+    end)
+
+    -- Tắt hiệu ứng mặt nước
+    pcall(function()
+        local terrain = Workspace:FindFirstChildOfClass("Terrain")
+        if terrain then
+            terrain.WaterWaveSize = 0
+            terrain.WaterWaveSpeed = 0
+            terrain.WaterReflectance = 0
+            terrain.WaterTransparency = 0
+        end
+    end)
+
+    -- Hàm xóa Texture, Particle, Bóng đổ của từng vật thể
+    local function cleanObject(obj)
+        pcall(function()
+            if obj:IsA("BasePart") then
+                obj.Material = Enum.Material.SmoothPlastic
+                obj.CastShadow = false
+                obj.Reflectance = 0
+            elseif obj:IsA("Decal") or obj:IsA("Texture") then
+                obj:Destroy()
+            elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
+                obj.Enabled = false
+            elseif obj:IsA("Highlight") then
+                obj:Destroy()
+            end
+        end)
+    end
+
+    -- Dọn dẹp bản đồ hiện tại
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        cleanObject(obj)
+    end
+
+    -- Tự dọn dẹp vật thể/kỹ năng mới xuất hiện để tránh giật lag đột ngột
+    Workspace.DescendantAdded:Connect(cleanObject)
+end
+
+-- Kích hoạt ép đồ họa thấp ngay lập tức
+applyPotatoGraphics()
+
+-- 2. DỌN BỘ NHỚ RAM TỰ ĐỘNG (Dành cho máy RAM ít, tránh văng game)
+task.spawn(function()
+    while task.wait(60) do
+        pcall(function() collectgarbage("collect") end)
+    end
+end)
+
+-- 3. CHỐNG KICK AFK
+if getconnections then
+    for _, conn in pairs(getconnections(LocalPlayer.Idled)) do
+        if conn.Disable then conn:Disable() end
+    end
+end
+
+task.spawn(function()
+    while task.wait(60) do
+        pcall(function()
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.RightShift, false, game)
+            task.wait(0.1)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.RightShift, false, game)
+        end)
+    end
+end)
+
+-- 4. TẠO MÀN HÌNH ĐEN
 local blackGui = Instance.new("ScreenGui")
-blackGui.Name = "UltraBlackScreen"
+blackGui.Name = "SafeBlackScreen"
 blackGui.IgnoreGuiInset = true
 blackGui.ResetOnSpawn = false
 blackGui.DisplayOrder = 2147483647
@@ -20,90 +108,35 @@ blackFrame.Size = UDim2.new(1, 0, 1, 0)
 blackFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 blackFrame.BorderSizePixel = 0
 
--- Ưu tiên chèn vào CoreGui để không bị script khác làm mất màn đen
 local targetParent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 blackGui.Parent = targetParent
 
--- 2. TẮT ÂM THANH & TẮT RENDER 3D & SIẾT FPS XUỐNG 5
-SoundService.Volume = 0
-pcall(function() RunService:Set3dRenderingEnabled(false) end)
-if setfpscap then pcall(function() setfpscap(5) end) end
+-- 5. HÀM CHUYỂN ĐỔI TRẠNG THÁI (TOGGLE)
+local function toggleOptimization(enable)
+    isOptimized = enable
+    blackGui.Enabled = enable
 
--- 3. TỰ ĐỘNG CHỐNG KICK AFK
-LocalPlayer.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
-end)
+    pcall(function()
+        RunService:Set3dRenderingEnabled(not enable)
+    end)
 
-task.spawn(function()
-    while task.wait(300) do
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
-    end
-end)
-
--- 4. XÓA SẠCH PLAYER GUI (GIAO DIỆN GAME)
-local function clearPlayerGui()
-    local pgui = LocalPlayer:FindFirstChild("PlayerGui")
-    if pgui then
-        for _, gui in ipairs(pgui:GetChildren()) do
-            if gui ~= blackGui then
-                pcall(function() gui:Destroy() end)
-            end
-        end
-    end
-end
-clearPlayerGui()
-
-LocalPlayer.ChildAdded:Connect(function(c)
-    if c.Name == "PlayerGui" then
-        task.wait()
-        for _, gui in ipairs(c:GetChildren()) do
-            if gui ~= blackGui then pcall(function() gui:Destroy() end) end
-        end
-        c.ChildAdded:Connect(function(gui)
-            if gui ~= blackGui then
-                task.wait()
-                pcall(function() gui:Destroy() end)
-            end
-        end)
-    end
-end)
-
--- 5. XÓA SẠCH MAP, TERRAIN & LIGHTING
-Lighting:ClearAllChildren()
-Lighting.GlobalShadows = false
-Lighting.FogEnd = 0
-Lighting.Brightness = 0
-Lighting.Ambient = Color3.new(0, 0, 0)
-Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
-
-pcall(function() Workspace.Terrain:Clear() end)
-
--- Hàm xóa triệt để mọi vật thể trong Workspace (giữ lại Camera)
-local function sweepWorkspace(obj)
-    if obj ~= Workspace.CurrentCamera then
-        pcall(function() obj:Destroy() end)
+    if enable then
+        -- Khi bật AFK: Tắt tiếng, khóa 10 FPS để hạ nhiệt tối đa
+        SoundService.Volume = 0
+        if setfpscap then pcall(function() setfpscap(10) end) end
+    else
+        -- Khi tắt AFK để chơi: Bật lại tiếng, mở 60 FPS (Đồ họa vẫn giữ dạng Potato mượt mà)
+        SoundService.Volume = originalVolume
+        if setfpscap then pcall(function() setfpscap(60) end) end
     end
 end
 
-for _, v in ipairs(Workspace:GetChildren()) do
-    sweepWorkspace(v)
-end
+-- Bật sẵn chế độ treo máy khi vừa chạy script
+toggleOptimization(true)
 
--- Tự động diệt ngay các vật thể mới load vào Map
-Workspace.ChildAdded:Connect(sweepWorkspace)
-
--- 6. GIẢM CẤP ĐỘ ĐỒ HỌA HỆ THỐNG XUỐNG MỨC THẤP NHẤT
-pcall(function()
-    local rendering = settings().Rendering
-    rendering.QualityLevel = Enum.QualityLevel.Level01
-    rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level01
-end)
-
--- 7. ÉP DỌN BỘ NHỚ ĐỆM (GARBAGE COLLECTION) LIÊN TỤC MỖI 30 GIÂY
-task.spawn(function()
-    while task.wait(30) do
-        collectgarbage("collect")
+-- 6. BẮT SỰ KIỆN PHÍM BẤM
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == TOGGLE_KEY then
+        toggleOptimization(not isOptimized)
     end
 end)

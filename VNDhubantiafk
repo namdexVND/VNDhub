@@ -129,7 +129,7 @@ local function toggleOptimization(enable)
         RunService:Set3dRenderingEnabled(not enable)
     end)
 
-    if enable me then
+    if enable then
         SoundService.Volume = 0
         if setfpscap then pcall(function() setfpscap(AFK_FPS) end) end
     else

@@ -11,14 +11,14 @@ local LocalPlayer = Players.LocalPlayer
 
 -- CẤU HÌNH
 local TOGGLE_KEY = Enum.KeyCode.Insert
-local AFK_FPS = 5 -- Ép FPS xuống 5 khi treo (máy siêu mát, chống quá nhiệt)
+local AFK_FPS = 5 -- Ép FPS xuống 5 khi treo
 local NORMAL_FPS = 60
 
-local isOptimized = true
+local isOptimized = false
 local originalVolume = SoundService.Volume > 0 and SoundService.Volume or 0.5
 
 ----------------------------------------------------
--- LỚP 1: TẮT SỰ KIỆN IDLED (ROBLOX ENGINE LEVEL)
+-- LỚP 1: TẮT SỰ KIỆN IDLED (ANTI-AFK)
 ----------------------------------------------------
 if getconnections then
     for _, conn in pairs(getconnections(LocalPlayer.Idled)) do
@@ -32,23 +32,20 @@ LocalPlayer.Idled:Connect(function()
 end)
 
 ----------------------------------------------------
--- LỚP 2: GIẢ LẬP TƯƠNG TÁC ĐA KÊNH & NHÍCH CAMERA
+-- LỚP 2: GIẢ LẬP TƯƠNG TÁC ĐA KÊNH
 ----------------------------------------------------
 task.spawn(function()
     while task.wait(30) do
         pcall(function()
-            -- 1. Giả lập bấm phím ảo RightShift
             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.RightShift, false, game)
             task.wait(0.05)
             VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.RightShift, false, game)
             
-            -- 2. Giả lập nhấp chuột ảo
             VirtualUser:CaptureController()
             VirtualUser:Button2Down(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
             task.wait(0.05)
             VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
 
-            -- 3. Nhích nhẹ góc quay Camera 0.01 độ
             if Workspace.CurrentCamera then
                 Workspace.CurrentCamera.CFrame = Workspace.CurrentCamera.CFrame * CFrame.Angles(0, math.rad(0.01), 0)
             end
@@ -57,7 +54,7 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------
--- LỚP 3: POTATO GRAPHICS & DỌN RAM CHỐNG TRÀN BỘ NHỚ
+-- LỚP 3: POTATO GRAPHICS & DỌN RAM
 ----------------------------------------------------
 local function applyPotatoGraphics()
     pcall(function()
@@ -97,7 +94,6 @@ end
 
 applyPotatoGraphics()
 
--- Ép dọn RAM liên tục mỗi 30 giây
 task.spawn(function()
     while task.wait(30) do
         pcall(function() collectgarbage("collect") end)
@@ -105,39 +101,72 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------
--- LỚP 4: MÀN HÌNH ĐEN & ÉP 5 FPS MÁY BĂNG GIÁ
+-- LỚP 4: TẠO MÀN HÌNH ĐEN AN TOÀN
 ----------------------------------------------------
+local function getSafeParent()
+    if gethui then
+        local success, res = pcall(gethui)
+        if success and res then return res end
+    end
+    local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
+    if success and coreGui then return coreGui end
+    return LocalPlayer:WaitForChild("PlayerGui")
+end
+
 local blackGui = Instance.new("ScreenGui")
 blackGui.Name = "SafeBlackScreen"
 blackGui.IgnoreGuiInset = true
 blackGui.ResetOnSpawn = false
 blackGui.DisplayOrder = 2147483647
+blackGui.Enabled = false
 
 local blackFrame = Instance.new("Frame", blackGui)
 blackFrame.Size = UDim2.new(1, 0, 1, 0)
-blackFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+blackFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 blackFrame.BorderSizePixel = 0
+blackFrame.ZIndex = 999999
+blackFrame.Active = true
 
-local targetParent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
-blackGui.Parent = targetParent
+-- Thêm dòng chữ thông báo trạng thái
+local statusLabel = Instance.new("TextLabel", blackFrame)
+statusLabel.Size = UDim2.new(1, 0, 0, 50)
+statusLabel.Position = UDim2.new(0, 0, 0.45, 0)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+statusLabel.TextSize = 20
+statusLabel.Font = Enum.Font.SourceSansBold
+statusLabel.Text = "ĐÃ BẬT CHẾ ĐỘ TREO MÁY (INSERT ĐỂ TẮT)"
 
+blackGui.Parent = getSafeParent()
+
+----------------------------------------------------
+-- BẬT / TẮT TỐI ƯU
+----------------------------------------------------
 local function toggleOptimization(enable)
     isOptimized = enable
-    blackGui.Enabled = enable
-
-    pcall(function()
-        RunService:Set3dRenderingEnabled(not enable)
-    end)
 
     if enable then
+        -- 1. Hiện UI Đen lên trước
+        blackGui.Enabled = true
         SoundService.Volume = 0
         if setfpscap then pcall(function() setfpscap(AFK_FPS) end) end
+        
+        -- 2. Chờ UI vẽ xong mới ngắt 3D Rendering
+        task.delay(0.1, function()
+            if isOptimized then
+                pcall(function() RunService:Set3dRenderingEnabled(false) end)
+            end
+        end)
     else
+        -- Bật lại 3D Rendering trước khi ẩn UI Đen
+        pcall(function() RunService:Set3dRenderingEnabled(true) end)
+        blackGui.Enabled = false
         SoundService.Volume = originalVolume
         if setfpscap then pcall(function() setfpscap(NORMAL_FPS) end) end
     end
 end
 
+-- Khởi chạy chế độ tối ưu khi load script
 toggleOptimization(true)
 
 -- NÚT BẬT/TẮT: BẤM PHÍM INSERT

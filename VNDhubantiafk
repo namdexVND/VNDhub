@@ -2,21 +2,63 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local VirtualUser = game:GetService("VirtualUser")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 
--- ==========================================
--- CẤU HÌNH PHÍM TẮT (Mặc định: Phím Insert)
+-- CẤU HÌNH
 local TOGGLE_KEY = Enum.KeyCode.Insert
--- ==========================================
+local AFK_FPS = 5 -- Ép FPS xuống 5 khi treo (máy siêu mát, chống quá nhiệt)
+local NORMAL_FPS = 60
 
 local isOptimized = true
 local originalVolume = SoundService.Volume > 0 and SoundService.Volume or 0.5
 
--- 1. ÉP ĐỒ HỌA SIÊU THẤP (POTATO GRAPHICS CHO PC YẾU)
+----------------------------------------------------
+-- LỚP 1: TẮT SỰ KIỆN IDLED (ROBLOX ENGINE LEVEL)
+----------------------------------------------------
+if getconnections then
+    for _, conn in pairs(getconnections(LocalPlayer.Idled)) do
+        if conn.Disable then conn:Disable() end
+    end
+end
+
+LocalPlayer.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new(0, 0))
+end)
+
+----------------------------------------------------
+-- LỚP 2: GIẢ LẬP TƯƠNG TÁC ĐA KÊNH & NHÍCH CAMERA
+----------------------------------------------------
+task.spawn(function()
+    while task.wait(30) do
+        pcall(function()
+            -- 1. Giả lập bấm phím ảo RightShift
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.RightShift, false, game)
+            task.wait(0.05)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.RightShift, false, game)
+            
+            -- 2. Giả lập nhấp chuột ảo
+            VirtualUser:CaptureController()
+            VirtualUser:Button2Down(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+            task.wait(0.05)
+            VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+
+            -- 3. Nhích nhẹ góc quay Camera 0.01 độ
+            if Workspace.CurrentCamera then
+                Workspace.CurrentCamera.CFrame = Workspace.CurrentCamera.CFrame * CFrame.Angles(0, math.rad(0.01), 0)
+            end
+        end)
+    end
+end)
+
+----------------------------------------------------
+-- LỚP 3: POTATO GRAPHICS & DỌN RAM CHỐNG TRÀN BỘ NHỚ
+----------------------------------------------------
 local function applyPotatoGraphics()
     pcall(function()
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
@@ -24,7 +66,6 @@ local function applyPotatoGraphics()
         Lighting.FogEnd = 9e9
         Lighting.Technology = Enum.Technology.Compatibility
         
-        -- Tắt toàn bộ hiệu ứng ánh sáng nặng
         for _, v in pairs(Lighting:GetChildren()) do
             if v:IsA("PostEffect") or v:IsA("Atmosphere") or v:IsA("Sky") then
                 v.Enabled = false
@@ -32,18 +73,6 @@ local function applyPotatoGraphics()
         end
     end)
 
-    -- Tắt hiệu ứng mặt nước
-    pcall(function()
-        local terrain = Workspace:FindFirstChildOfClass("Terrain")
-        if terrain then
-            terrain.WaterWaveSize = 0
-            terrain.WaterWaveSpeed = 0
-            terrain.WaterReflectance = 0
-            terrain.WaterTransparency = 0
-        end
-    end)
-
-    -- Hàm xóa Texture, Particle, Bóng đổ của từng vật thể
     local function cleanObject(obj)
         pcall(function()
             if obj:IsA("BasePart") then
@@ -60,43 +89,24 @@ local function applyPotatoGraphics()
         end)
     end
 
-    -- Dọn dẹp bản đồ hiện tại
     for _, obj in pairs(Workspace:GetDescendants()) do
         cleanObject(obj)
     end
-
-    -- Tự dọn dẹp vật thể/kỹ năng mới xuất hiện để tránh giật lag đột ngột
     Workspace.DescendantAdded:Connect(cleanObject)
 end
 
--- Kích hoạt ép đồ họa thấp ngay lập tức
 applyPotatoGraphics()
 
--- 2. DỌN BỘ NHỚ RAM TỰ ĐỘNG (Dành cho máy RAM ít, tránh văng game)
+-- Ép dọn RAM liên tục mỗi 30 giây
 task.spawn(function()
-    while task.wait(60) do
+    while task.wait(30) do
         pcall(function() collectgarbage("collect") end)
     end
 end)
 
--- 3. CHỐNG KICK AFK
-if getconnections then
-    for _, conn in pairs(getconnections(LocalPlayer.Idled)) do
-        if conn.Disable then conn:Disable() end
-    end
-end
-
-task.spawn(function()
-    while task.wait(60) do
-        pcall(function()
-            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.RightShift, false, game)
-            task.wait(0.1)
-            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.RightShift, false, game)
-        end)
-    end
-end)
-
--- 4. TẠO MÀN HÌNH ĐEN
+----------------------------------------------------
+-- LỚP 4: MÀN HÌNH ĐEN & ÉP 5 FPS MÁY BĂNG GIÁ
+----------------------------------------------------
 local blackGui = Instance.new("ScreenGui")
 blackGui.Name = "SafeBlackScreen"
 blackGui.IgnoreGuiInset = true
@@ -111,7 +121,6 @@ blackFrame.BorderSizePixel = 0
 local targetParent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 blackGui.Parent = targetParent
 
--- 5. HÀM CHUYỂN ĐỔI TRẠNG THÁI (TOGGLE)
 local function toggleOptimization(enable)
     isOptimized = enable
     blackGui.Enabled = enable
@@ -120,21 +129,18 @@ local function toggleOptimization(enable)
         RunService:Set3dRenderingEnabled(not enable)
     end)
 
-    if enable then
-        -- Khi bật AFK: Tắt tiếng, khóa 10 FPS để hạ nhiệt tối đa
+    if enable me then
         SoundService.Volume = 0
-        if setfpscap then pcall(function() setfpscap(10) end) end
+        if setfpscap then pcall(function() setfpscap(AFK_FPS) end) end
     else
-        -- Khi tắt AFK để chơi: Bật lại tiếng, mở 60 FPS (Đồ họa vẫn giữ dạng Potato mượt mà)
         SoundService.Volume = originalVolume
-        if setfpscap then pcall(function() setfpscap(60) end) end
+        if setfpscap then pcall(function() setfpscap(NORMAL_FPS) end) end
     end
 end
 
--- Bật sẵn chế độ treo máy khi vừa chạy script
 toggleOptimization(true)
 
--- 6. BẮT SỰ KIỆN PHÍM BẤM
+-- NÚT BẬT/TẮT: BẤM PHÍM INSERT
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == TOGGLE_KEY then
         toggleOptimization(not isOptimized)
